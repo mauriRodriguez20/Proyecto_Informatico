@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  FRONTEND
+  BACKEND
+}
+
+enum PublicationType {
+  ERROR_SOLUTION
+  CODE_SNIPPET
+}
+
+// ============================================================
+// USUARIOS
+// ============================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  role         Role
+  avatarUrl    String?
+  description  String?
+  avgRating    Float    @default(0)
+  totalRatings Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  technologies    UserTechnology[]
+  publications    Publication[]
+  questions       Question[]
+  answers         Answer[]
+  comments        Comment[]
+  ratingsGiven    Rating[]         @relation("RatingsGiven")
+  ratingsReceived Rating[]         @relation("RatingsReceived")
+
+  @@map("users")
+}
+
+model Technology {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  users        UserTechnology[]
+  publications PublicationTag[]
+  questions    QuestionTag[]
+
+  @@map("technologies")
+}
+
+model UserTechnology {
+  userId       String
+  technologyId String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, technologyId])
+  @@map("user_technologies")
+}
+
+// ============================================================
+// PUBLICACIONES
+// ============================================================
+
+model Publication {
+  id           String          @id @default(uuid())
+  authorId     String
+  type         PublicationType
+  area         Role
+  title        String
+  description  String
+  errorCode    String?
+  solution     String?
+  codeBlock    String?
+  language     String?
+  avgRating    Float           @default(0)
+  totalRatings Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags     PublicationTag[]
+  comments Comment[]
+  ratings  Rating[]
+
+  @@index([authorId])
+  @@index([type])
+  @@index([area])
+  @@index([createdAt])
+  @@map("publications")
+}
+
+model PublicationTag {
+  publicationId String
+  technologyId  String
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  technology  Technology  @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, technologyId])
+  @@map("publication_tags")
+}
+
+// ============================================================
+// PREGUNTAS Y RESPUESTAS
+// ============================================================
+
+model Question {
+  id          String   @id @default(uuid())
+  authorId    String
+  area        Role
+  title       String
+  description String
+  codeContext String?
+  isAnswered  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags     QuestionTag[]
+  answers  Answer[]
+  comments Comment[]
+
+  @@index([authorId])
+  @@index([isAnswered])
+  @@index([createdAt])
+  @@map("questions")
+}
+
+model QuestionTag {
+  questionId   String
+  technologyId String
+
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, technologyId])
+  @@map("question_tags")
+}
+
+model Answer {
+  id           String   @id @default(uuid())
+  questionId   String
+  authorId     String
+  content      String
+  codeBlock    String?
+  language     String?
+  isAccepted   Boolean  @default(false)
+  avgRating    Float    @default(0)
+  totalRatings Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ratings  Rating[]
+
+  @@index([questionId])
+  @@index([authorId])
+  @@index([isAccepted])
+  @@map("answers")
+}
+
+// ============================================================
+// INTERACCIONES
+// ============================================================
+
+model Comment {
+  id            String    @id @default(uuid())
+  authorId      String
+  content       String    @db.VarChar(500)
+  publicationId String?
+  questionId    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  question    Question?    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId])
+  @@index([questionId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Rating {
+  id            String   @id @default(uuid())
+  raterId       String
+  targetUserId  String
+  score         Int
+  publicationId String?
+  answerId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  rater       User         @relation("RatingsGiven",    fields: [raterId],      references: [id], onDelete: Cascade)
+  targetUser  User         @relation("RatingsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  answer      Answer?      @relation(fields: [answerId],      references: [id], onDelete: Cascade)
+
+  @@unique([raterId, publicationId])
+  @@unique([raterId, answerId])
+  @@index([targetUserId])
+  @@map("ratings")
+}
