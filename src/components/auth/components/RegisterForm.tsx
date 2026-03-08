@@ -1,0 +1,163 @@
+'use client';
+
+import { useState } from 'react';
+import styles from './RegisterForm.module.css';
+import FormInput from './FormInput';
+import PasswordStrength from './PasswordStrength';
+import { useAuth } from '@/hooks/useAuth';
+
+interface RegisterFormProps {
+    onSuccess?: () => void;
+}
+
+interface Errors {
+    name?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+    terms?: string;
+    general?: string;
+}
+
+export default function RegisterForm({ onSuccess }: RegisterFormProps) {
+    const { register, isLoading } = useAuth();
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [agreed, setAgreed] = useState(false);
+    const [errors, setErrors] = useState<Errors>({});
+    const [shakeFields, setShakeFields] = useState<string[]>([]);
+
+    const validate = (): boolean => {
+        const errs: Errors = {};
+        if (!name.trim()) errs.name = 'Full name is required';
+        if (!email.trim()) errs.email = 'Email is required';
+        else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
+        if (!password) errs.password = 'Password is required';
+        else if (password.length < 8) errs.password = 'Must be at least 8 characters';
+        if (!confirmPassword) errs.confirmPassword = 'Please confirm your password';
+        else if (password !== confirmPassword) errs.confirmPassword = 'Passwords do not match';
+        if (!agreed) errs.terms = 'You must agree to the terms';
+        setErrors(errs);
+        if (Object.keys(errs).length > 0) {
+            setShakeFields(Object.keys(errs));
+            setTimeout(() => setShakeFields([]), 500);
+        }
+        return Object.keys(errs).length === 0;
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validate()) return;
+        try {
+            await register({ name, email, password, confirmPassword });
+            onSuccess?.();
+        } catch {
+            setErrors({ general: 'Registration failed. Please try again.' });
+        }
+    };
+
+    return (
+        <form className={styles.form} onSubmit={handleSubmit} noValidate>
+            {errors.general && (
+                <div className={styles.alert} role="alert">
+                    {errors.general}
+                </div>
+            )}
+
+            <FormInput
+                id="reg-name"
+                label="Full name"
+                type="text"
+                icon="user"
+                autoComplete="name"
+                value={name}
+                onChange={setName}
+                error={errors.name}
+                shake={shakeFields.includes('name')}
+            />
+
+            <FormInput
+                id="reg-email"
+                label="Email address"
+                type="email"
+                icon="email"
+                autoComplete="email"
+                value={email}
+                onChange={setEmail}
+                error={errors.email}
+                shake={shakeFields.includes('email')}
+            />
+
+            <FormInput
+                id="reg-password"
+                label="Password"
+                type="password"
+                icon="lock"
+                autoComplete="new-password"
+                value={password}
+                onChange={setPassword}
+                error={errors.password}
+                shake={shakeFields.includes('password')}
+            />
+
+            <PasswordStrength password={password} />
+
+            <FormInput
+                id="reg-confirm"
+                label="Confirm password"
+                type="password"
+                icon="lock"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                error={errors.confirmPassword}
+                shake={shakeFields.includes('confirmPassword')}
+            />
+
+            {/* Terms checkbox */}
+            <label className={`${styles.termsLabel} ${errors.terms ? styles.termsError : ''}`}>
+                <span className={styles.checkboxWrapper} onClick={() => setAgreed((v) => !v)}>
+                    <input
+                        type="checkbox"
+                        className={styles.checkbox}
+                        checked={agreed}
+                        onChange={(e) => setAgreed(e.target.checked)}
+                        aria-label="I agree to the terms and conditions"
+                    />
+                    <span className={styles.checkboxCustom} aria-hidden="true">
+                        {agreed && (
+                            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg>
+                        )}
+                    </span>
+                </span>
+                <span className={styles.termsText}>
+                    I agree to the{' '}
+                    <button type="button" className={styles.termsLink}>Terms of Service</button>
+                    {' '}and{' '}
+                    <button type="button" className={styles.termsLink}>Privacy Policy</button>
+                </span>
+            </label>
+            {errors.terms && <p className={styles.termsErrorMsg}>{errors.terms}</p>}
+
+            <button type="submit" className={styles.submitBtn} disabled={isLoading} aria-busy={isLoading}>
+                {isLoading ? (
+                    <>
+                        <span className={styles.spinner} aria-hidden="true" />
+                        Creating account…
+                    </>
+                ) : (
+                    <>
+                        Create Account
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={16} height={16}>
+                            <path d="M12 4v16m8-8H4" />
+                        </svg>
+                    </>
+                )}
+            </button>
+        </form>
+    );
+}
