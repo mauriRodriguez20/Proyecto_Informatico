@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import styles from './RegisterForm.module.css';
 import FormInput from './FormInput';
+import FormSelect from './FormSelect';
 import PasswordStrength from './PasswordStrength';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -15,6 +16,7 @@ interface Errors {
     email?: string;
     password?: string;
     confirmPassword?: string;
+    role?: string;
     terms?: string;
     general?: string;
 }
@@ -25,6 +27,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [role, setRole] = useState('');
     const [agreed, setAgreed] = useState(false);
     const [errors, setErrors] = useState<Errors>({});
     const [shakeFields, setShakeFields] = useState<string[]>([]);
@@ -38,6 +41,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         else if (password.length < 8) errs.password = 'Must be at least 8 characters';
         if (!confirmPassword) errs.confirmPassword = 'Please confirm your password';
         else if (password !== confirmPassword) errs.confirmPassword = 'Passwords do not match';
+        if (!role) errs.role = 'Please select your developer role';
         if (!agreed) errs.terms = 'You must agree to the terms';
         setErrors(errs);
         if (Object.keys(errs).length > 0) {
@@ -51,7 +55,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         e.preventDefault();
         if (!validate()) return;
         try {
-            await register({ name, email, password, confirmPassword });
+            await register({ name, email, password, confirmPassword, role });
             onSuccess?.();
         } catch {
             setErrors({ general: 'Registration failed. Please try again.' });
@@ -114,6 +118,21 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
                 onChange={setConfirmPassword}
                 error={errors.confirmPassword}
                 shake={shakeFields.includes('confirmPassword')}
+            />
+
+            <FormSelect
+                id="reg-role"
+                label="Developer Role"
+                icon="user"
+                value={role}
+                onChange={setRole}
+                options={[
+                    { value: 'frontend', label: 'Frontend Developer' },
+                    { value: 'backend', label: 'Backend Developer' },
+                    { value: 'fullstack', label: 'Fullstack Developer' }
+                ]}
+                error={errors.role}
+                shake={shakeFields.includes('role')}
             />
 
             {/* Terms checkbox */}
