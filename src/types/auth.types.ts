@@ -1,7 +1,9 @@
 export interface AuthUser {
     id: string;
-    name: string;
+    username: string;
     email: string;
+    role: string;
+    rating: number;
     avatarUrl?: string;
     createdAt?: string;
 }
@@ -12,7 +14,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-    name: string;
+    username: string;
     email: string;
     password: string;
     confirmPassword: string;

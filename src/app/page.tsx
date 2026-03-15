@@ -1,19 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Hero from '@/components/hero/Hero';
 import CommunitySection from '@/components/community/CommunitySection';
-import AuthOverlay from '@/components/auth/AuthOverlay';
-import { AuthMode } from '@/types/auth.types';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Home() {
-    const [isAuthOpen, setIsAuthOpen] = useState(false);
-    const [authMode, setAuthMode] = useState<AuthMode>('login');
-
-    const openAuth = (mode: AuthMode) => {
-        setAuthMode(mode);
-        setIsAuthOpen(true);
-    };
+    const { user, isLoading } = useAuth();
+    const router = useRouter();
 
     // 🚀 Dev log once the portal is mounted
     useEffect(() => {
@@ -29,17 +24,11 @@ export default function Home() {
     return (
         <main>
             <Hero
-                onLoginClick={() => openAuth('login')}
-                onSignUpClick={() => openAuth('register')}
+                onLoginClick={() => router.push('/login')}
+                onSignUpClick={() => router.push('/register')}
             />
 
             <CommunitySection />
-
-            <AuthOverlay
-                isOpen={isAuthOpen}
-                onClose={() => setIsAuthOpen(false)}
-                initialMode={authMode}
-            />
         </main>
     );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './LoginForm.module.css';
 import FormInput from './FormInput';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,14 +37,17 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         return Object.keys(errs).length === 0;
     };
 
+    const router = useRouter();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
         try {
             await login({ email, password });
             onSuccess?.();
-        } catch {
-            setErrors({ general: 'Invalid credentials. Please try again.' });
+            router.push('/dashboard');
+        } catch (err: any) {
+            setErrors({ general: err.message || 'Invalid credentials. Please try again.' });
         }
     };
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import styles from './FormInput.module.css';
 
 type IconType = 'user' | 'email' | 'lock' | 'none';
@@ -18,7 +18,7 @@ interface FormInputProps {
     shake?: boolean;
 }
 
-const icons: Record<IconType, JSX.Element> = {
+const icons: Record<IconType, React.JSX.Element> = {
     user: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
             <circle cx="12" cy="8" r="4" />

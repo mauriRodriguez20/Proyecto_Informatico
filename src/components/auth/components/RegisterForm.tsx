@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './RegisterForm.module.css';
 import FormInput from './FormInput';
 import FormSelect from './FormSelect';
@@ -12,7 +13,7 @@ interface RegisterFormProps {
 }
 
 interface Errors {
-    name?: string;
+    username?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
@@ -23,7 +24,7 @@ interface Errors {
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     const { register, isLoading } = useAuth();
-    const [name, setName] = useState('');
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -32,9 +33,35 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     const [errors, setErrors] = useState<Errors>({});
     const [shakeFields, setShakeFields] = useState<string[]>([]);
 
+    useEffect(() => {
+        // Cargar datos persistidos si los hay
+        const saved = sessionStorage.getItem('reg_data');
+        if (saved) {
+            const data = JSON.parse(saved);
+            setUsername(data.username || '');
+            setEmail(data.email || '');
+            setRole(data.role || '');
+        }
+
+        // Verificar si aceptó en la página de términos
+        if (sessionStorage.getItem('terms_accepted') === 'true') {
+            setAgreed(true);
+            sessionStorage.removeItem('terms_accepted');
+        }
+    }, []);
+
+    const saveToSession = () => {
+        sessionStorage.setItem('reg_data', JSON.stringify({ username, email, role }));
+    };
+
+    const handleGoToTerms = () => {
+        saveToSession();
+        router.push('/terms');
+    };
+
     const validate = (): boolean => {
         const errs: Errors = {};
-        if (!name.trim()) errs.name = 'Full name is required';
+        if (!username.trim()) errs.username = 'Username is required';
         if (!email.trim()) errs.email = 'Email is required';
         else if (!/\S+@\S+\.\S+/.test(email)) errs.email = 'Invalid email address';
         if (!password) errs.password = 'Password is required';
@@ -51,14 +78,23 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
         return Object.keys(errs).length === 0;
     };
 
+    const router = useRouter();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validate()) return;
         try {
-            await register({ name, email, password, confirmPassword, role });
+            await register({
+                username,
+                email,
+                password,
+                confirmPassword,
+                role: role.toUpperCase()
+            });
             onSuccess?.();
-        } catch {
-            setErrors({ general: 'Registration failed. Please try again.' });
+            router.push('/dashboard');
+        } catch (err: any) {
+            setErrors({ general: err.message || 'Registration failed. Please try again.' });
         }
     };
 
@@ -71,15 +107,15 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             )}
 
             <FormInput
-                id="reg-name"
-                label="Full name"
+                id="reg-username"
+                label="Username"
                 type="text"
                 icon="user"
-                autoComplete="name"
-                value={name}
-                onChange={setName}
-                error={errors.name}
-                shake={shakeFields.includes('name')}
+                autoComplete="username"
+                value={username}
+                onChange={setUsername}
+                error={errors.username}
+                shake={shakeFields.includes('username')}
             />
 
             <FormInput
@@ -128,8 +164,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
                 onChange={setRole}
                 options={[
                     { value: 'frontend', label: 'Frontend Developer' },
-                    { value: 'backend', label: 'Backend Developer' },
-                    { value: 'fullstack', label: 'Fullstack Developer' }
+                    { value: 'backend', label: 'Backend Developer' }
                 ]}
                 error={errors.role}
                 shake={shakeFields.includes('role')}
@@ -155,9 +190,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
                 </span>
                 <span className={styles.termsText}>
                     I agree to the{' '}
-                    <button type="button" className={styles.termsLink}>Terms of Service</button>
-                    {' '}and{' '}
-                    <button type="button" className={styles.termsLink}>Privacy Policy</button>
+                    <button type="button" className={styles.termsLink} onClick={handleGoToTerms}>Terms and Conditions</button>
+                    {' '}and Privacy Policy
                 </span>
             </label>
             {errors.terms && <p className={styles.termsErrorMsg}>{errors.terms}</p>}
