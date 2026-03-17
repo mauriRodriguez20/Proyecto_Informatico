@@ -7,6 +7,7 @@ import FormInput from './FormInput';
 import FormSelect from './FormSelect';
 import PasswordStrength from './PasswordStrength';
 import { useAuth } from '@/hooks/useAuth';
+import SocialAuth from './SocialAuth';
 
 interface RegisterFormProps {
     onSuccess?: () => void;
@@ -211,6 +212,8 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
                     </>
                 )}
             </button>
+
+            <SocialAuth />
         </form>
     );
 }

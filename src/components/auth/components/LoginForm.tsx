@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import styles from './LoginForm.module.css';
 import FormInput from './FormInput';
 import { useAuth } from '@/hooks/useAuth';
+import SocialAuth from './SocialAuth';
 
 interface LoginFormProps {
     onSuccess?: () => void;
@@ -107,6 +108,8 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                     </>
                 )}
             </button>
+
+            <SocialAuth />
         </form>
     );
 }

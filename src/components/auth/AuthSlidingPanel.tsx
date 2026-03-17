@@ -101,10 +101,10 @@ export default function AuthSlidingPanel({ initialMode, onClose }: AuthSlidingPa
             <div className={styles.body}>
                 <div
                     className={`${styles.formSlide} ${transitioning
-                            ? exitDir === 'up'
-                                ? styles.exitUp
-                                : styles.exitDown
-                            : styles.enterActive
+                        ? exitDir === 'up'
+                            ? styles.exitUp
+                            : styles.exitDown
+                        : styles.enterActive
                         }`}
                 >
                     {mode === 'login' ? (
@@ -113,8 +113,6 @@ export default function AuthSlidingPanel({ initialMode, onClose }: AuthSlidingPa
                         <RegisterForm onSuccess={onClose} />
                     )}
                 </div>
-
-                <SocialAuth />
 
                 <p className={styles.switchText}>
                     {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
