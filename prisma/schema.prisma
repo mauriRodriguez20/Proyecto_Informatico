@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["users"]
 }
 
 // ============================================================
@@ -15,15 +17,12 @@ datasource db {
 enum Role {
   FRONTEND
   BACKEND
-}
 
-enum PublicationType {
-  ERROR_SOLUTION
-  CODE_SNIPPET
+  @@schema("users")
 }
 
 // ============================================================
-// USUARIOS
+// MS-01: USERS SCHEMA
 // ============================================================
 
 model User {
@@ -39,14 +38,11 @@ model User {
   updatedAt    DateTime @updatedAt
 
   technologies    UserTechnology[]
-  publications    Publication[]
-  questions       Question[]
-  answers         Answer[]
-  comments        Comment[]
-  ratingsGiven    Rating[]         @relation("RatingsGiven")
-  ratingsReceived Rating[]         @relation("RatingsReceived")
+  ratingsGiven    UserRating[]     @relation("RatingsGiven")
+  ratingsReceived UserRating[]     @relation("RatingsReceived")
 
   @@map("users")
+  @@schema("users")
 }
 
 model Technology {
@@ -54,11 +50,10 @@ model Technology {
   name String @unique
   slug String @unique
 
-  users        UserTechnology[]
-  publications PublicationTag[]
-  questions    QuestionTag[]
+  users UserTechnology[]
 
   @@map("technologies")
+  @@schema("users")
 }
 
 model UserTechnology {
@@ -70,151 +65,24 @@ model UserTechnology {
 
   @@id([userId, technologyId])
   @@map("user_technologies")
+  @@schema("users")
 }
 
-// ============================================================
-// PUBLICACIONES
-// ============================================================
-
-model Publication {
-  id           String          @id @default(uuid())
-  authorId     String
-  type         PublicationType
-  area         Role
-  title        String
-  description  String
-  errorCode    String?
-  solution     String?
-  codeBlock    String?
-  language     String?
-  avgRating    Float           @default(0)
-  totalRatings Int             @default(0)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-
-  author   User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tags     PublicationTag[]
-  comments Comment[]
-  ratings  Rating[]
-
-  @@index([authorId])
-  @@index([type])
-  @@index([area])
-  @@index([createdAt])
-  @@map("publications")
-}
-
-model PublicationTag {
-  publicationId String
-  technologyId  String
-
-  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  technology  Technology  @relation(fields: [technologyId], references: [id], onDelete: Cascade)
-
-  @@id([publicationId, technologyId])
-  @@map("publication_tags")
-}
-
-// ============================================================
-// PREGUNTAS Y RESPUESTAS
-// ============================================================
-
-model Question {
-  id          String   @id @default(uuid())
-  authorId    String
-  area        Role
-  title       String
-  description String
-  codeContext String?
-  isAnswered  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  tags     QuestionTag[]
-  answers  Answer[]
-  comments Comment[]
-
-  @@index([authorId])
-  @@index([isAnswered])
-  @@index([createdAt])
-  @@map("questions")
-}
-
-model QuestionTag {
-  questionId   String
-  technologyId String
-
-  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
-
-  @@id([questionId, technologyId])
-  @@map("question_tags")
-}
-
-model Answer {
+/// Calificaciones entre usuarios (HU-009)
+model UserRating {
   id           String   @id @default(uuid())
-  questionId   String
-  authorId     String
-  content      String
-  codeBlock    String?
-  language     String?
-  isAccepted   Boolean  @default(false)
-  avgRating    Float    @default(0)
-  totalRatings Int      @default(0)
+  raterId      String
+  targetUserId String
+  score        Int      // 1–5
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  ratings  Rating[]
+  rater      User @relation("RatingsGiven",    fields: [raterId],      references: [id], onDelete: Cascade)
+  targetUser User @relation("RatingsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
 
-  @@index([questionId])
-  @@index([authorId])
-  @@index([isAccepted])
-  @@map("answers")
-}
-
-// ============================================================
-// INTERACCIONES
-// ============================================================
-
-model Comment {
-  id            String    @id @default(uuid())
-  authorId      String
-  content       String    @db.VarChar(500)
-  publicationId String?
-  questionId    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  author      User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  question    Question?    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@index([publicationId])
-  @@index([questionId])
-  @@index([authorId])
-  @@map("comments")
-}
-
-model Rating {
-  id            String   @id @default(uuid())
-  raterId       String
-  targetUserId  String
-  score         Int
-  publicationId String?
-  answerId      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  rater       User         @relation("RatingsGiven",    fields: [raterId],      references: [id], onDelete: Cascade)
-  targetUser  User         @relation("RatingsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
-  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  answer      Answer?      @relation(fields: [answerId],      references: [id], onDelete: Cascade)
-
-  @@unique([raterId, publicationId])
-  @@unique([raterId, answerId])
+  @@unique([raterId, targetUserId])
   @@index([targetUserId])
-  @@map("ratings")
+  @@map("user_ratings")
+  @@schema("users")
 }
