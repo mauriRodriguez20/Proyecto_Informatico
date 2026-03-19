@@ -3,8 +3,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 // Rutas públicas que NO requieren autenticación
 const PUBLIC_ROUTES = [
-  "/api/users/register",
-  "/api/users/login",
+  "/api/publications",  // GET (listado y detalle) son públicos; POST/PATCH/DELETE son protegidos por withAuth
 ];
 
 export default async function middleware(req: NextRequest) {

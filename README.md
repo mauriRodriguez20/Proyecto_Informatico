@@ -1,53 +1,71 @@
-# 🚀 Developer's Portal — Microservicio 01 (Users)
+# 🚀 Developer's Portal — Microservicio 02 (Publications)
 
-Este es el primer microservicio del proyecto, encargado exclusivamente de la gestión de usuarios, perfiles, catálogo de tecnologías y el sistema de calificaciones de usuario a usuario.
-
----
-
-## 🏗️ Arquitectura Multi-Schema (Supabase Free Tier)
-
-De acuerdo a la **Auditoría Técnica del 17/03/2026**, para escalar el proyecto dentro del *"Free Tier"* de Supabase manteniendo el límite de 2 proyectos activos, se implementó una **arquitectura basada en Schemas de PostgreSQL**.
-
-*   🌟 **Un solo Proyecto en Supabase:** Todos los microservicios comparten la misma Base de Datos y la misma instancia de Autenticación.
-*   🔒 **Schemas Independientes:** Este repositorio (`MS-01`) gestiona únicamente el schema `users`. El schema de prisma se ha configurado utilizando el feature `multiSchema` de Prisma.
-*   🔑 **Autenticación Compartida:** El JWT que Supabase entrega en `/api/users/login` es válido universalmente. El middleware de cualquier microservicio (como MS-02 o MS-03) podrá validar quién es el usuario directamente contra Supabase, sin necesidad de consultar nuevamente a la API de usuarios.
+Este microservicio se encarga de la gestión de **Publicaciones Técnicas**, permitiendo a los desarrolladores compartir soluciones a errores (`ERROR_SOLUTION`) y fragmentos de código reutilizables (`CODE_SNIPPET`).
 
 ---
 
-## 📂 Convenciones de Implementación (Guía para MS-02)
-
-Para mantener la consistencia al desarrollar el próximo microservicio (`backend-publications`), se debe seguir fielmente la estructura dejada en este repositorio:
-
-1.  **`.env` Centralizado:** Se deben usar exactamente el mismo `DATABASE_URL` y `DIRECT_URL`.
-2.  **Schema Aislado:** El `schema.prisma` debe estar configurado con `schemas = ["publications"]` y todos los modelos deben incluir el tag `@@schema("publications")`. **No se deben repetir** modelos de MS-01 en MS-02.
-3.  **Cross-fetching:** Para obtener los datos del autor de una publicación, MS-02 debe hacer una llamada HTTP REST (Cross-fetch) al endpoint `GET /api/users/:id` de este repositorio. Las relaciones a nivel de base de datos no pueden cruzar schemas en Prisma todavía de manera limpia, por lo que la separación la manejamos vía API.
-4.  **Helper `api-helpers.ts` y Middleware:** Copiar `src/middleware.ts` y `src/lib/api-helpers.ts` de este microservicio al siguiente. Están testeados y listos para validar los JWTs.
+## 🏗️ Arquitectura y Seguridad
+Este microservicio sigue las convenciones del **Developer's Portal**:
+- **Multi-Schema**: Gestiona exclusivamente el esquema `publications` en la base de datos compartida de Supabase.
+- **Seguridad RLS**: Tiene habilitado **Row Level Security**. Solo el autor de una publicación puede editarla o eliminarla.
+- **Validación Zod**: Implementa validación condicional estricta según el tipo de publicación.
+- **Cross-fetching**: Para obtener datos del autor, este backend consume internamente el endpoint `GET /api/users/:id` del MS-01.
 
 ---
 
-## 🛠️ Endpoints de este Microservicio (MS-01)
+## 🛠️ Guía para el Frontend (Endpoints)
 
-| Funcionalidad | Método | Ruta protegida |
-| :--- | :--- | :--- |
-| **Registro** | `POST` | `/api/users/register` (Público) |
-| **Login** | `POST` | `/api/users/login` (Público) |
-| **Logout** | `POST` | `/api/users/logout` |
-| **Ver Perfil** | `GET` | `/api/users/:id` (Público) |
-| **Editar Perfil** | `PATCH` | `/api/users/:id` |
-| **Calificar Dev** | `POST` | `/api/users/:id/rate` |
-| **Seed de Techs**| N/A | Correr con `npm run db:seed` |
+| Funcionalidad | Método | Ruta | Protegido | Notas |
+| :--- | :--- | :--- | :--- | :--- |
+| **Listar / Filtrar** | `GET` | `/api/publications` | No | Soporta query params: `type`, `area`, `technologyId`, `sortBy`, `page`. |
+| **Ver Detalle** | `GET` | `/api/publications/:id` | No | Retorna la publicación + datos del autor (cross-fetch). |
+| **Crear** | `POST` | `/api/publications` | **Sí** | Requiere Session Token. Validación condicional activada. |
+| **Editar** | `PATCH` | `/api/publications/:id` | **Sí** | Solo el autor puede realizar esta acción. |
+| **Eliminar** | `DELETE`| `/api/publications/:id` | **Sí** | Solo el autor puede realizar esta acción. |
+
+### Parámetros de Listado (`GET /api/publications`)
+- `type`: `ERROR_SOLUTION` o `CODE_SNIPPET`.
+- `area`: `FRONTEND` o `BACKEND`.
+- `technologyId`: UUID de la tecnología (del catálogo de MS-01).
+- `sortBy`: `recent` (default) o `most_voted`.
+- `page`: Paginación automática en grupos de **10**.
 
 ---
 
-## 📝 Comandos Útiles
+## 📋 Reglas de Validación (POST/PATCH)
+Al crear o editar, el backend valida lo siguiente:
+- **Si el tipo es `ERROR_SOLUTION`**: Son obligatorios los campos `errorCode` y `solution`.
+- **Si el tipo es `CODE_SNIPPET`**: Son obligatorios los campos `codeBlock` y `language`.
+- **Título**: Mínimo 10 caracteres.
+- **Etiquetas**: Máximo 5 por publicación.
 
-```bash
-# Sincronizar schema a supabase (cuidado: puede purgar datos si cambias nombres)
-npx prisma db push
+---
+
+## 🚀 Ejecución Local
+
+1.  **Instalar dependencias**:
+    ```bash
+    npm install
+    ```
+2.  **Configurar Variables de Entorno**:
+    Crea un archivo `.env` basado en las credenciales de Supabase del proyecto `hwijeokbenqzlrlukown`. Asegúrate de definir `MS01_URL` para el cross-fetching.
+3.  **Sincronizar DB**:
+    ```bash
+    npx prisma generate
+    npx prisma db push
+    ```
+4.  **Iniciar Servidor**:
+    ```bash
+    npm run dev
+    ```
+
+---
+
+## 🔒 Requisito de Autenticación
+Para los endpoints protegidos, el Frontend debe enviar el **Bearer Token** o la cookie de sesión gestionada por `@supabase/ssr`, tal como se definió en el middleware compartido.
 
 # Regenerar cliente local de Prisma
 npx prisma generate
 
 # Poblar el catálogo de tecnologías en la DB
-npm run db:seed
 ```
