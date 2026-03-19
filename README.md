@@ -64,8 +64,21 @@ Al crear o editar, el backend valida lo siguiente:
 ## 🔒 Requisito de Autenticación
 Para los endpoints protegidos, el Frontend debe enviar el **Bearer Token** o la cookie de sesión gestionada por `@supabase/ssr`, tal como se definió en el middleware compartido.
 
+## 📝 Comandos Útiles
+
+```bash
+# Sincronizar schema a supabase
+npx prisma db push
+
 # Regenerar cliente local de Prisma
 npx prisma generate
 
-# Poblar el catálogo de tecnologías en la DB
+# Abrir visor de base de datos local
+npx prisma studio
 ```
+
+---
+
+## 💡 Notas Adicionales
+- Para poblar el catálogo de tecnologías, se debe ejecutar el `seed` en el **Microservicio 01 (Usuarios)**, ya que es el encargado de gestionar esa entidad compartida.
+- Asegúrate de tener el MS-01 corriendo localmente para que el cross-fetching de autores funcione correctamente.
