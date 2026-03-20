@@ -1,0 +1,88 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["users"]
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  FRONTEND
+  BACKEND
+
+  @@schema("users")
+}
+
+// ============================================================
+// MS-01: USERS SCHEMA
+// ============================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  role         Role
+  avatarUrl    String?
+  description  String?
+  avgRating    Float    @default(0)
+  totalRatings Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  technologies    UserTechnology[]
+  ratingsGiven    UserRating[]     @relation("RatingsGiven")
+  ratingsReceived UserRating[]     @relation("RatingsReceived")
+
+  @@map("users")
+  @@schema("users")
+}
+
+model Technology {
+  id   String @id @default(uuid())
+  name String @unique
+  slug String @unique
+
+  users UserTechnology[]
+
+  @@map("technologies")
+  @@schema("users")
+}
+
+model UserTechnology {
+  userId       String
+  technologyId String
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  technology Technology @relation(fields: [technologyId], references: [id], onDelete: Cascade)
+
+  @@id([userId, technologyId])
+  @@map("user_technologies")
+  @@schema("users")
+}
+
+/// Calificaciones entre usuarios (HU-009)
+model UserRating {
+  id           String   @id @default(uuid())
+  raterId      String
+  targetUserId String
+  score        Int      // 1–5
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rater      User @relation("RatingsGiven",    fields: [raterId],      references: [id], onDelete: Cascade)
+  targetUser User @relation("RatingsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@unique([raterId, targetUserId])
+  @@index([targetUserId])
+  @@map("user_ratings")
+  @@schema("users")
+}
