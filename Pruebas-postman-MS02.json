@@ -1,0 +1,268 @@
+{
+  "info": {
+    "name": "Proyecto Informatico Backend MS02 - Publications API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "beb9391c-9a3d-4fcd-bf00-47f18f33903f"
+  },
+  "item": [
+    {
+      "name": "01 - Listar publicaciones (público)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json).to.have.property('data').that.is.an('array');",
+              "pm.expect(json).to.have.property('total').that.is.a('number');",
+              "pm.expect(json).to.have.property('page').that.is.a('number');",
+              "pm.expect(json).to.have.property('limit').that.is.a('number');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Crear publicación (protegido)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"ERROR_SOLUTION\",\n  \"area\": \"BACKEND\",\n  \"title\": \"Error en la conexión a base de datos al crear cupones\",\n  \"description\": \"Aparece 'connection timeout' al llamar la función de creación.\",\n  \"errorCode\": \"DB_CONN_001\",\n  \"solution\": \"Aumentar timeout a 30s y resetear pool.\",\n  \"technologyIds\": [\"{{technologyId}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.test('Mensaje creación OK', () => pm.expect(json.message).to.eql('Publicación creada exitosamente.'));",
+              "pm.test('Devuelve publication.id', () => pm.expect(json.publication).to.have.property('id'));",
+              "if (json.publication && json.publication.id) { pm.environment.set('publicationId', json.publication.id); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Ver detalle publicación por ID (público)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications", "{{publicationId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.expect(json).to.have.property('publication');",
+              "if (json.publication) { pm.expect(json.publication).to.have.property('id', pm.environment.get('publicationId')); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Actualizar publicación (autorizado, solo autor)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Error en la conexión DB al crear cupones (actualizado)\",\n  \"description\": \"Se ajustó el timeout en el pool y se reintentó transacción\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications", "{{publicationId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Publicación actualizada', () => pm.expect(json).to.have.property('publication'));",
+              "pm.test('El título se actualiza', () => pm.expect(json.publication.title).to.include('actualizado'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Eliminar publicación (autorizado, solo autor)",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications", "{{publicationId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.test('Mensaje eliminado', () => pm.expect(json.message).to.eql('Publicación eliminada exitosamente.'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Query inválida (limit > 50) expected 400",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications?limit=100",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications"],
+          "query": [
+            {
+              "key": "limit",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.expect(json).to.have.property('error');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - 401 no auth token en POST",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"ERROR_SOLUTION\",\n  \"area\": \"BACKEND\",\n  \"title\": \"test\",\n  \"description\": \"test\",\n  \"errorCode\": \"x\",\n  \"solution\": \"x\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 401', () => pm.response.to.have.status(401));",
+              "const json = pm.response.json();",
+              "pm.expect(json.error).to.eql('Token de autenticación requerido.');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - 400 validar tipo CODE_SNIPPET sin codeBlock",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{authToken}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"type\": \"CODE_SNIPPET\",\n  \"area\": \"BACKEND\",\n  \"title\": \"Code snippet sin codeBlock\",\n  \"description\": \"Debe fallar porque faltan campos de código.\",\n  \"technologyIds\": [\"{{technologyId}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "publications"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+              "const json = pm.response.json();",
+              "pm.expect(json).to.have.property('error');",
+              "pm.expect(json).to.have.property('details');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

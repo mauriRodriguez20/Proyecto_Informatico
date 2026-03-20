@@ -1,0 +1,77 @@
+// ============================================================
+//  Developer's Portal — Microservicio 02 (Publications)
+//  Schema: publications
+//  Arquitectura: Multi-Schema (comparte el mismo proyecto Supabase que MS-01)
+//
+//  REGLAS:
+//  - Todos los modelos deben incluir @@schema("publications")
+//  - NO se debe definir el modelo User aquí.
+//    Para obtener datos del autor, usar cross-fetch al GET /api/users/:id de MS-01.
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["publications"]
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Enums
+// ──────────────────────────────────────────────────────────────
+
+enum PublicationType {
+  ERROR_SOLUTION
+  CODE_SNIPPET
+
+  @@schema("publications")
+}
+
+enum Area {
+  FRONTEND
+  BACKEND
+
+  @@schema("publications")
+}
+
+// ──────────────────────────────────────────────────────────────
+//  Models
+// ──────────────────────────────────────────────────────────────
+
+model Publication {
+  id           String          @id @default(uuid())
+  authorId     String          // UUID del User en MS-01 (cross-fetch)
+  type         PublicationType
+  area         Area
+  title        String
+  description  String
+  errorCode    String?         // Solo para ERROR_SOLUTION
+  solution     String?         // Solo para ERROR_SOLUTION
+  codeBlock    String?
+  language     String?         // Lenguaje del bloque de código
+  avgRating    Float           @default(0)
+  totalRatings Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tags         PublicationTag[]
+
+  @@map("publications")
+  @@schema("publications")
+}
+
+model PublicationTag {
+  publicationId String
+  technologyId  String          // UUID del Technology que vive en MS-01
+
+  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, technologyId])
+  @@map("publication_tags")
+  @@schema("publications")
+}
