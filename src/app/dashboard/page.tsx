@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import PublicationCreate from '@/components/dashboard/PublicationCreate';
+import PublicationFeed from '@/components/dashboard/PublicationFeed';
 
 export default function DashboardPage() {
     const { user, isLoading } = useAuth();
@@ -31,32 +33,13 @@ export default function DashboardPage() {
                         Welcome back, <span style={{ color: 'var(--color-primary)' }}>{user.username}</span>!
                     </h1>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '1.1rem' }}>
-                        Here is an overview of your activity and developer stats.
+                        Share your knowledge or find solutions from the community.
                     </p>
                 </header>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)' }}>
-                    {/* Activity Card */}
-                    <div style={{ background: 'var(--color-surface)', padding: 'var(--space-6)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' }}>
-                        <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.2rem' }}>Experience</h3>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }}>2.4k XP</div>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>+150 today</p>
-                    </div>
+                <PublicationCreate />
 
-                    {/* Stats Card */}
-                    <div style={{ background: 'var(--color-surface)', padding: 'var(--space-6)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' }}>
-                        <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.2rem' }}>Rating</h3>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>{user.rating || 5.0}</div>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>Top 5% Developers</p>
-                    </div>
-
-                    {/* Projects Card */}
-                    <div style={{ background: 'var(--color-surface)', padding: 'var(--space-6)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--color-border)' }}>
-                        <h3 style={{ marginBottom: 'var(--space-4)', fontSize: '1.2rem' }}>Active Projects</h3>
-                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-accent)' }}>12</div>
-                        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.9rem' }}>4 pending review</p>
-                    </div>
-                </div>
+                <PublicationFeed />
             </div>
         </DashboardLayout>
     );

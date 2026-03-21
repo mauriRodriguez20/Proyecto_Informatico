@@ -14,9 +14,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
 
     const navItems = [
-        { href: '/dashboard', label: 'Overview', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
-        { href: '/dashboard/projects', label: 'Projects', icon: 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z' },
-        { href: '/profile', label: 'Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 7a4 4 0 0 1 0 8 4 4 0 0 1 0-8z' },
+        { href: '/dashboard', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },
+        { href: '/dashboard/publications', label: 'My Publications', icon: 'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z' },
+        { href: '/dashboard/profile', label: 'User Profile', icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 7a4 4 0 0 1 0 8 4 4 0 0 1 0-8z' },
     ];
 
     return (

@@ -1,0 +1,128 @@
+.feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.feedHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.filters {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.filterBtn {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    padding: 6px 16px;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filterBtn:hover {
+    color: var(--color-text);
+    border-color: var(--color-primary-glow);
+}
+
+.filterBtn.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    box-shadow: var(--glow-sm);
+}
+
+.sort {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.sortLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sortSegments {
+    display: flex;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 2px;
+}
+
+.sortBtn {
+    background: none;
+    border: none;
+    padding: 4px 12px;
+    border-radius: calc(var(--radius-md) - 2px);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sortBtn:hover:not(.active) {
+    color: var(--color-text);
+}
+
+.sortBtn.active {
+    background: var(--color-surface-3);
+    color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.loading,
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    border: 1px dashed var(--color-border);
+    color: var(--color-text-muted);
+    gap: var(--space-4);
+}
+
+.spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--color-surface-3);
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.error {
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    text-align: center;
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
