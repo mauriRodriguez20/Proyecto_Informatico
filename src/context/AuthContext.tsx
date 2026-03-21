@@ -56,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             setUser(mockUser);
             localStorage.setItem('user', JSON.stringify(mockUser));
+            localStorage.setItem('auth_token', 'mock_token_' + mockUser.id); // Save token for services
         } catch (err: any) {
             setError('Login failed');
             throw err;
@@ -80,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             setUser(mockUser);
             localStorage.setItem('user', JSON.stringify(mockUser));
+            localStorage.setItem('auth_token', 'mock_token_' + mockUser.id); // Save token for services
         } catch (err: any) {
             setError('Registration failed');
             throw err;
@@ -91,6 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = useCallback(() => {
         setUser(null);
         localStorage.removeItem('user');
+        localStorage.removeItem('auth_token'); // Clear token
         localStorage.removeItem('access_token');
         setError(null);
     }, []);

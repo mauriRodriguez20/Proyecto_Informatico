@@ -32,44 +32,8 @@ export const publicationService = {
         if (filters.authorId) params.append('authorId', filters.authorId);
         if (filters.page) params.append('page', filters.page.toString());
 
-        try {
-            const response = await fetch(`${BASE_URL}/api/publications?${params.toString()}`);
-            return await handleResponse(response);
-        } catch (error) {
-            console.warn('Backend not reachable, using mock data:', error);
-            // Mock data fallback
-            return {
-                data: [
-                    {
-                        id: '1',
-                        title: 'How to use React Server Components?',
-                        content: 'React Server Components allow you to render components on the server...',
-                        type: 'CODE_SNIPPET',
-                        area: 'FRONTEND',
-                        technology: 'React',
-                        author: { id: 'auth1', username: 'FrontendWiz', role: 'Senior React Dev', rating: 4.8 },
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        commentsCount: 12,
-                        likesCount: 45
-                    },
-                    {
-                        id: '2',
-                        title: 'Fixing CORS in Express.js',
-                        content: 'To fix CORS issues in Express, you can use the cors middleware...',
-                        type: 'ERROR_SOLUTION',
-                        area: 'BACKEND',
-                        technology: 'Node.js',
-                        author: { id: 'auth2', username: 'BackendGuru', role: 'Systems Architect', rating: 4.9 },
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                        commentsCount: 5,
-                        likesCount: 28
-                    }
-                ],
-                total: 2
-            };
-        }
+        const response = await fetch(`${BASE_URL}/api/publications?${params.toString()}`);
+        return handleResponse(response);
     },
 
     async getById(id: string): Promise<Publication> {
