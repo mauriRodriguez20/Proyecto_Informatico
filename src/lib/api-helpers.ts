@@ -1,22 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-// ─────────────────────────────────────────────────────────────
-// Tipos
-// ─────────────────────────────────────────────────────────────
-
 export type AuthResult =
   | { userId: string; errorResponse: null }
   | { userId: null; errorResponse: NextResponse };
 
-// ─────────────────────────────────────────────────────────────
-// withAuth
-// Extrae el userId autenticado de un request protegido.
-// Uso en route handlers:
-//
-//   const { userId, errorResponse } = await withAuth(req);
-//   if (errorResponse) return errorResponse;
-// ─────────────────────────────────────────────────────────────
+const MAX_TOKEN_AGE_SECONDS = 24 * 60 * 60;
+
+function parseJwtPayload(token: string): { iat?: number; exp?: number } | null {
+  try {
+    const [, payloadPart] = token.split(".");
+    if (!payloadPart) return null;
+
+    const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      "="
+    );
+
+    const json = Buffer.from(padded, "base64").toString("utf8");
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpiredByPolicy(token: string): boolean {
+  const payload = parseJwtPayload(token);
+  if (!payload) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+
+  if (typeof payload.exp === "number" && now > payload.exp) {
+    return true;
+  }
+
+  if (typeof payload.iat === "number" && now - payload.iat > MAX_TOKEN_AGE_SECONDS) {
+    return true;
+  }
+
+  return false;
+}
 
 export async function withAuth(req: NextRequest): Promise<AuthResult> {
   const authHeader = req.headers.get("authorization");
@@ -28,7 +52,17 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
     return {
       userId: null,
       errorResponse: NextResponse.json(
-        { error: "Token de autenticación requerido." },
+        { error: "Token de autenticacion requerido." },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (isTokenExpiredByPolicy(token)) {
+    return {
+      userId: null,
+      errorResponse: NextResponse.json(
+        { error: "No autorizado. La sesion expiro (maximo 24 horas)." },
         { status: 401 }
       ),
     };
@@ -64,7 +98,7 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
     return {
       userId: null,
       errorResponse: NextResponse.json(
-        { error: "No autorizado. Sesión inválida o expirada." },
+        { error: "No autorizado. Sesion invalida o expirada." },
         { status: 401 }
       ),
     };
