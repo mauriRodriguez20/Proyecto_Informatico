@@ -86,3 +86,16 @@ model UserRating {
   @@map("user_ratings")
   @@schema("users")
 }
+
+/// Controla intentos fallidos de login para bloqueo temporal tras 5 errores.
+model LoginAttempt {
+  email        String   @id
+  failedCount  Int      @default(0)
+  lockedUntil  DateTime?
+  lastFailedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("login_attempts")
+  @@schema("users")
+}
