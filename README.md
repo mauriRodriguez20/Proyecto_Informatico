@@ -1,10 +1,10 @@
-# 🚀 Developer's Portal — Microservicio 02 (Publications)
+# Developer's Portal — Microservicio 02 (Publications)
 
 Este microservicio se encarga de la gestión de **Publicaciones Técnicas**, permitiendo a los desarrolladores compartir soluciones a errores (`ERROR_SOLUTION`) y fragmentos de código reutilizables (`CODE_SNIPPET`).
 
 ---
 
-## 🏗️ Arquitectura y Seguridad
+## Arquitectura y Seguridad
 Este microservicio sigue las convenciones del **Developer's Portal**:
 - **Multi-Schema**: Gestiona exclusivamente el esquema `publications` en la base de datos compartida de Supabase.
 - **Seguridad RLS**: Tiene habilitado **Row Level Security**. Solo el autor de una publicación puede editarla o eliminarla.
@@ -41,7 +41,7 @@ Al crear o editar, el backend valida lo siguiente:
 
 ---
 
-## 🚀 Ejecución Local
+##  Ejecución Local
 
 1.  **Instalar dependencias**:
     ```bash
@@ -61,10 +61,10 @@ Al crear o editar, el backend valida lo siguiente:
 
 ---
 
-## 🔒 Requisito de Autenticación
+## Requisito de Autenticación
 Para los endpoints protegidos, el Frontend debe enviar el **Bearer Token** o la cookie de sesión gestionada por `@supabase/ssr`, tal como se definió en el middleware compartido.
 
-## 📝 Comandos Útiles
+## Comandos Útiles
 
 ```bash
 # Sincronizar schema a supabase
@@ -79,6 +79,6 @@ npx prisma studio
 
 ---
 
-## 💡 Notas Adicionales
+## Notas Adicionales
 - Para poblar el catálogo de tecnologías, se debe ejecutar el `seed` en el **Microservicio 01 (Usuarios)**, ya que es el encargado de gestionar esa entidad compartida.
 - Asegúrate de tener el MS-01 corriendo localmente para que el cross-fetching de autores funcione correctamente.
