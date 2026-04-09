@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { userService } from '@/services/user.service';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import styles from './Profile.module.css';
 
@@ -10,11 +11,15 @@ export default function RedesignedProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         username: '',
         email: '',
-        role: ''
+        role: '',
+        description: '',
+        avatarUrl: ''
     });
 
     useEffect(() => {
@@ -22,9 +27,28 @@ export default function RedesignedProfilePage() {
             setFormData({
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                description: '',
+                avatarUrl: user.avatarUrl || ''
             });
         }
+    }, [user]);
+
+    useEffect(() => {
+        if (!user) return;
+
+        userService
+            .getProfile(user.id)
+            .then((profile) => {
+                setFormData((prev) => ({
+                    ...prev,
+                    description: profile.description || '',
+                    avatarUrl: profile.avatarUrl || prev.avatarUrl || '',
+                }));
+            })
+            .catch(() => {
+                // Keep local fallback values if profile fetch fails.
+            });
     }, [user]);
 
     if (isLoading || !user) return null;
@@ -34,17 +58,69 @@ export default function RedesignedProfilePage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setFormData(prev => ({ ...prev, description: e.target.value }));
+    };
+
+    const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setSaveError('Please select an image file.');
+            return;
+        }
+
+        if (file.size > 1_500_000) {
+            setSaveError('Image is too large. Max size is 1.5 MB.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result === 'string') {
+                setFormData(prev => ({ ...prev, avatarUrl: result }));
+                setSaveError(null);
+            }
+        };
+        reader.onerror = () => {
+            setSaveError('Could not read the image file.');
+        };
+        reader.readAsDataURL(file);
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
-        // Simulate API call
-        await new Promise(r => setTimeout(r, 1000));
-        updateUser({
-            username: formData.username,
-            email: formData.email,
-            role: formData.role
-        });
-        setIsSaving(false);
-        setIsEditing(false);
+        setSaveError(null);
+        try {
+            const updatedProfile = await userService.updateProfile(user.id, {
+                username: formData.username.trim(),
+                role: formData.role,
+                avatarUrl: formData.avatarUrl || undefined,
+                description: formData.description || undefined,
+            });
+
+            updateUser({
+                username: updatedProfile.username || formData.username,
+                role: updatedProfile.role || formData.role,
+                avatarUrl: updatedProfile.avatarUrl || undefined,
+            });
+
+            setFormData((prev) => ({
+                ...prev,
+                username: updatedProfile.username || prev.username,
+                role: updatedProfile.role || prev.role,
+                description: updatedProfile.description || '',
+                avatarUrl: updatedProfile.avatarUrl || prev.avatarUrl || '',
+            }));
+
+            setIsEditing(false);
+        } catch (err: any) {
+            setSaveError(err.message || 'Could not save profile changes.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const toggleEdit = () => {
@@ -52,7 +128,9 @@ export default function RedesignedProfilePage() {
             setFormData({
                 username: user.username,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                description: formData.description,
+                avatarUrl: user.avatarUrl || formData.avatarUrl || ''
             });
             setShowRoleDropdown(false);
         }
@@ -78,27 +156,39 @@ export default function RedesignedProfilePage() {
                         {isEditing ? 'Cancel' : 'Edit Profile'}
                     </button>
                 </header>
+                {saveError && <div className={styles.errorMessage}>{saveError}</div>}
 
                 <div className={styles.contentGrid}>
                     <div className={styles.mainCard}>
                         <div className={styles.avatarSection}>
                             <div className={styles.avatarWrapper}>
                                 <div className={styles.avatar}>
-                                    {user.avatarUrl ? (
-                                        <img src={user.avatarUrl} alt={user.username} />
+                                    {(isEditing ? formData.avatarUrl : user.avatarUrl) ? (
+                                        <img src={(isEditing ? formData.avatarUrl : user.avatarUrl) || ''} alt={user.username} />
                                     ) : (
                                         <span>{user.username[0].toUpperCase()}</span>
                                     )}
                                 </div>
                                 {isEditing && (
-                                    <div className={styles.avatarOverlay}>
+                                    <button
+                                        type="button"
+                                        className={styles.avatarOverlay}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
                                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                             <circle cx="12" cy="13" r="4" />
                                         </svg>
-                                    </div>
+                                    </button>
                                 )}
                             </div>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                style={{ display: 'none' }}
+                                onChange={handleAvatarFile}
+                            />
                             <div className={styles.userInfo}>
                                 <h2>{user.username}</h2>
                                 <span>{user.role} Developer</span>
@@ -173,6 +263,20 @@ export default function RedesignedProfilePage() {
                             <div className={styles.field}>
                                 <label>Member Since</label>
                                 <p className={styles.value}>March 2026</p>
+                            </div>
+
+                            <div className={styles.field}>
+                                <label>Profile Description</label>
+                                {isEditing ? (
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={handleDescriptionChange}
+                                        className={styles.input}
+                                        placeholder="Tell the community about you..."
+                                    />
+                                ) : (
+                                    <p className={styles.value}>{formData.description || 'No description yet.'}</p>
+                                )}
                             </div>
                         </div>
 

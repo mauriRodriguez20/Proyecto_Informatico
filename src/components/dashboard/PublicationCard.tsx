@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Publication } from '@/types/publications.types';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
+import MarkdownContent from '@/components/shared/MarkdownContent/MarkdownContent';
 import styles from './PublicationCard.module.css';
 
 interface PublicationCardProps {
@@ -26,6 +27,13 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
 
     const isOwner = user?.id === (publication.author?.id || publication.authorId);
     const date = new Date(publication.createdAt).toLocaleDateString();
+    const snippetCode = publication.codeBlock || publication.content;
+    const snippetDescription =
+        publication.type === 'CODE_SNIPPET' &&
+            publication.description &&
+            publication.description !== snippetCode
+            ? publication.description
+            : '';
 
     const handleSubmitComment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,7 +119,21 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
                 ) : (
                     <>
                         <h3 className={styles.title}>{publication.title}</h3>
-                        <p className={styles.text}>{publication.content}</p>
+                        {publication.type === 'CODE_SNIPPET' ? (
+                            <>
+                                {snippetDescription && (
+                                    <MarkdownContent content={snippetDescription} className={styles.text} />
+                                )}
+                                <MarkdownContent
+                                    content={snippetCode}
+                                    className={styles.text}
+                                    forceCodeBlock
+                                    languageHint={publication.language}
+                                />
+                            </>
+                        ) : (
+                            <MarkdownContent content={publication.content} className={styles.text} />
+                        )}
                     </>
                 )}
                 {publication.imageUrl && (
@@ -189,7 +211,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
                                         <span className={styles.commentAuthor}>{comment.author?.username || 'User'}</span>
                                         <span className={styles.commentDate}>{new Date(comment.createdAt).toLocaleDateString()}</span>
                                     </div>
-                                    <p className={styles.commentText}>{comment.content}</p>
+                                    <MarkdownContent content={comment.content} className={styles.commentText} compact />
                                 </div>
                             ))
                         ) : (

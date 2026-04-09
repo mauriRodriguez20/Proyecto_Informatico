@@ -7,7 +7,9 @@ import {
     LoginResponse,
     RegisterResponse,
     UpdateProfileDto,
+    UpdateProfileResponse,
     UserProfile,
+    UserProfileEnvelope,
 } from '@/types/user.types';
 import { LoginCredentials, RegisterData } from '@/types/auth.types';
 
@@ -52,7 +54,8 @@ export const userService = {
      * Obtiene el perfil público de un usuario por su ID.
      */
     async getProfile(id: string): Promise<UserProfile> {
-        return apiRequest<UserProfile>(BASE_URL_MS01, `/api/users/${id}`);
+        const response = await apiRequest<UserProfileEnvelope>(BASE_URL_MS01, `/api/users/${id}`);
+        return response.user;
     },
 
     /**
@@ -60,10 +63,11 @@ export const userService = {
      * Actualiza el perfil del usuario autenticado.
      */
     async updateProfile(id: string, data: UpdateProfileDto): Promise<UserProfile> {
-        return apiRequest<UserProfile>(BASE_URL_MS01, `/api/users/${id}`, {
+        const response = await apiRequest<UpdateProfileResponse>(BASE_URL_MS01, `/api/users/${id}`, {
             method: 'PATCH',
             body: JSON.stringify(data),
         });
+        return response.user;
     },
 
     /**

@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 import UserMenu from './UserMenu';
 import styles from './DashboardLayout.module.css';
 
@@ -11,7 +12,17 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+    const router = useRouter();
     const pathname = usePathname();
+    const { user, isLoading } = useAuth();
+
+    useEffect(() => {
+        if (!isLoading && !user) {
+            router.replace('/');
+        }
+    }, [isLoading, user, router]);
+
+    if (isLoading || !user) return null;
 
     const navItems = [
         { href: '/dashboard', label: 'Dashboard', icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' },

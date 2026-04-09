@@ -21,6 +21,9 @@ export interface Publication {
     id: string;
     title: string;
     content: string;
+    description?: string;
+    codeBlock?: string;
+    language?: string;
     type: PublicationType;
     area: DevArea;
     /** UUID of the technology from the MS-01 catalog */
@@ -42,6 +45,8 @@ export interface CreatePublicationDto {
     content: string;
     type: PublicationType;
     area: DevArea;
+    /** Required by MS-02 when type is ERROR_SOLUTION */
+    errorCode?: string;
     /** UUID of the technology from GET /api/technologies (MS-01) */
     technologyId: string;
     imageUrl?: string;

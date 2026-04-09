@@ -32,6 +32,7 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [type, setType] = useState<PublicationType>('CODE_SNIPPET');
+    const [errorCode, setErrorCode] = useState('');
     const [area, setArea] = useState<DevArea>('FRONTEND');
     const [technologyId, setTechnologyId] = useState('');
     const [technologies, setTechnologies] = useState<Technology[]>(FALLBACK_TECHNOLOGIES);
@@ -58,6 +59,10 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title.trim() || !content.trim()) return;
+        if (type === 'ERROR_SOLUTION' && !errorCode.trim()) {
+            setError('Error code is required for Solution posts.');
+            return;
+        }
 
         setIsSubmitting(true);
         setError(null);
@@ -68,6 +73,7 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
                 content,
                 type,
                 area,
+                errorCode: type === 'ERROR_SOLUTION' ? errorCode.trim() : undefined,
                 technologyId,
                 imageUrl: imageUrl || undefined
             });
@@ -75,6 +81,7 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
             // Reset form
             setTitle('');
             setContent('');
+            setErrorCode('');
             setTechnologyId('');
             setImageUrl('');
             setIsExpanded(false);
@@ -172,6 +179,20 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
                             </div>
                         </div>
                     </div>
+
+                    {type === 'ERROR_SOLUTION' && (
+                        <div className={styles.field}>
+                            <label>Error Code</label>
+                            <input
+                                type="text"
+                                className={styles.techInput}
+                                placeholder="Example: PrismaClientKnownRequestError (P2002)"
+                                value={errorCode}
+                                onChange={(e) => setErrorCode(e.target.value)}
+                                required
+                            />
+                        </div>
+                    )}
 
                     <div className={styles.field}>
                         <label>Technology</label>

@@ -8,7 +8,7 @@ export const BASE_URL_MS02 = process.env.NEXT_PUBLIC_API_URL_MS02 || '';
 /** Read the stored JWT and build an Authorization header */
 export function getAuthHeader(): Record<string, string> {
     if (typeof window === 'undefined') return {};
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('access_token');
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

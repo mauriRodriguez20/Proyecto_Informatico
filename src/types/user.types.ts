@@ -2,6 +2,7 @@
 export interface Technology {
     id: string;
     name: string;
+    slug?: string;
     category?: string;
     description?: string;
 }
@@ -28,18 +29,20 @@ export interface UserProfile {
     username: string;
     email: string;
     role: 'FRONTEND' | 'BACKEND' | string;
-    bio?: string;
-    avatarUrl?: string;
-    rating?: number;
-    technologies?: UserTechnology[];
-    createdAt?: string;
-    updatedAt?: string;
+    description?: string | null;
+    avatarUrl?: string | null;
+    avgRating?: number;
+    totalRatings?: number;
+    technologies?: Technology[] | UserTechnology[];
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
 }
 
 /** Body for PATCH /api/users/:id */
 export interface UpdateProfileDto {
     username?: string;
-    bio?: string;
+    role?: 'FRONTEND' | 'BACKEND' | string;
+    description?: string | null;
     avatarUrl?: string;
     technologyIds?: string[];
 }
@@ -51,12 +54,23 @@ export interface RateUserDto {
 
 /** Response shape from POST /api/users/login */
 export interface LoginResponse {
+    message?: string;
     token: string;
     user: UserProfile;
 }
 
 /** Response shape from POST /api/users/register */
 export interface RegisterResponse {
+    message?: string;
     token: string;
+    user: UserProfile;
+}
+
+export interface UserProfileEnvelope {
+    user: UserProfile;
+}
+
+export interface UpdateProfileResponse {
+    message?: string;
     user: UserProfile;
 }

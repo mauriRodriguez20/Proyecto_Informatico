@@ -1,14 +1,27 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import styles from './UserMenu.module.css';
 
 export default function UserMenu() {
+    const router = useRouter();
     const { user, logout } = useAuth();
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     const handleLogout = async () => {
-        await logout();
+        if (isLoggingOut) return;
+
+        setIsLoggingOut(true);
+        try {
+            await logout();
+        } finally {
+            router.replace('/');
+            router.refresh();
+            setIsLoggingOut(false);
+        }
     };
 
     if (!user) return null;
@@ -63,11 +76,11 @@ export default function UserMenu() {
                         </svg>
                         View Profile
                     </Link>
-                    <button onClick={handleLogout} className={`${styles.actionItem} ${styles.logoutBtn}`}>
+                    <button onClick={handleLogout} className={`${styles.actionItem} ${styles.logoutBtn}`} disabled={isLoggingOut}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={18} height={18}>
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
                         </svg>
-                        Logout
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
                     </button>
                 </div>
             </div>

@@ -13,9 +13,12 @@ function toAuthUser(profile: UserProfile): AuthUser {
         username: profile.username,
         email: profile.email,
         role: profile.role,
-        rating: profile.rating ?? 0,
-        avatarUrl: profile.avatarUrl,
-        createdAt: profile.createdAt,
+        rating: profile.avgRating ?? 0,
+        avatarUrl: profile.avatarUrl ?? undefined,
+        createdAt:
+            typeof profile.createdAt === 'string'
+                ? profile.createdAt
+                : profile.createdAt?.toISOString(),
     };
 }
 
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const authUser = toAuthUser(profile);
             setUser(authUser);
             localStorage.setItem('auth_token', token);
+            localStorage.setItem('access_token', token);
             localStorage.setItem('user', JSON.stringify(authUser));
         } catch (err: any) {
             setError(err.message || 'Login failed');
@@ -77,11 +81,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         setError(null);
         try {
-            const { token, user: profile } = await userService.register(data);
+            let { token, user: profile } = await userService.register(data);
+
+            // If register does not return a session token, log in immediately.
+            if (!token) {
+                const loginResult = await userService.login({
+                    email: data.email,
+                    password: data.password,
+                });
+                token = loginResult.token;
+                profile = loginResult.user;
+            }
 
             const authUser = toAuthUser(profile);
             setUser(authUser);
             localStorage.setItem('auth_token', token);
+            localStorage.setItem('access_token', token);
             localStorage.setItem('user', JSON.stringify(authUser));
         } catch (err: any) {
             setError(err.message || 'Registration failed');

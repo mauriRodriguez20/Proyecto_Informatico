@@ -12,6 +12,38 @@ import {
     Comment,
 } from '@/types/publications.types';
 
+function normalizePublication(raw: any): Publication {
+    const author = raw?.author
+        ? {
+            id: raw.author.id ?? raw.authorId,
+            username: raw.author.username ?? raw.author.name ?? `User ${(raw.authorId || '').slice(0, 5)}`,
+            avatarUrl: raw.author.avatarUrl ?? undefined,
+            role: raw.author.role ?? 'Developer',
+        }
+        : undefined;
+
+    return {
+        id: raw.id,
+        title: raw.title,
+        content: raw.content ?? raw.description ?? raw.codeBlock ?? '',
+        description: raw.description ?? undefined,
+        codeBlock: raw.codeBlock ?? undefined,
+        language: raw.language ?? undefined,
+        type: raw.type,
+        area: raw.area,
+        technologyId: raw.technologyId ?? raw.tags?.[0]?.technologyId ?? '',
+        technologyName: raw.technologyName,
+        imageUrl: raw.imageUrl,
+        authorId: raw.authorId,
+        author,
+        createdAt: raw.createdAt,
+        updatedAt: raw.updatedAt,
+        commentsCount: raw.commentsCount ?? 0,
+        likesCount: raw.likesCount ?? raw.totalRatings ?? 0,
+        comments: raw.comments ?? [],
+    };
+}
+
 export const publicationService = {
     /**
      * GET /api/publications
@@ -27,10 +59,15 @@ export const publicationService = {
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.page) params.append('page', filters.page.toString());
 
-        return apiRequest<{ data: Publication[]; total: number }>(
+        const response = await apiRequest<{ data: any[]; total: number }>(
             BASE_URL_MS02,
             `/api/publications?${params.toString()}`
         );
+
+        return {
+            total: response.total,
+            data: (response.data || []).map(normalizePublication),
+        };
     },
 
     /**
@@ -38,7 +75,12 @@ export const publicationService = {
      * Retorna la publicación con datos del autor (cross-fetch con MS-01).
      */
     async getById(id: string): Promise<Publication> {
-        return apiRequest<Publication>(BASE_URL_MS02, `/api/publications/${id}`);
+        const response = await apiRequest<{ publication?: any } | any>(
+            BASE_URL_MS02,
+            `/api/publications/${id}`
+        );
+        const publication = response.publication ?? response;
+        return normalizePublication(publication);
     },
 
     /**
@@ -46,10 +88,12 @@ export const publicationService = {
      * Crea una nueva publicación (requiere token de sesión).
      */
     async create(data: CreatePublicationDto): Promise<Publication> {
-        return apiRequest<Publication>(BASE_URL_MS02, '/api/publications', {
+        const response = await apiRequest<{ publication?: any } | any>(BASE_URL_MS02, '/api/publications', {
             method: 'POST',
             body: JSON.stringify(data),
         });
+        const publication = response.publication ?? response;
+        return normalizePublication(publication);
     },
 
     /**
@@ -57,10 +101,12 @@ export const publicationService = {
      * Edita una publicación (solo el autor).
      */
     async update(id: string, data: UpdatePublicationDto): Promise<Publication> {
-        return apiRequest<Publication>(BASE_URL_MS02, `/api/publications/${id}`, {
+        const response = await apiRequest<{ publication?: any } | any>(BASE_URL_MS02, `/api/publications/${id}`, {
             method: 'PATCH',
             body: JSON.stringify(data),
         });
+        const publication = response.publication ?? response;
+        return normalizePublication(publication);
     },
 
     /**
