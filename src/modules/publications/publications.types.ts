@@ -27,6 +27,7 @@ export type PublicationWithAuthorResponse = PublicationWithAuthor & { content: s
 
 export interface AuthorSnapshot {
   id: string;
+  username: string;
   name: string;
   avatarUrl: string | null;
   role: string;

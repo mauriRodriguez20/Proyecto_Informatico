@@ -141,9 +141,13 @@ async function fetchAuthor(authorId: string): Promise<AuthorSnapshot | null> {
     }
     const data = await res.json();
 
+    const username =
+      data.user?.username ?? data.user?.name ?? `User ${authorId.slice(0, 5)}`;
+
     return {
       id: data.user?.id ?? authorId,
-      name: data.user?.username ?? data.user?.name ?? "Autor desconocido",
+      username,
+      name: username,
       avatarUrl: data.user?.avatarUrl ?? null,
       role: data.user?.role ?? "UNKNOWN",
     };
@@ -271,7 +275,7 @@ export async function deletePublication(id: string): Promise<void> {
 }
 
 export async function listPublications(query: ListPublicationsQuery): Promise<{
-  data: PublicationResponse[];
+  data: PublicationWithAuthorResponse[];
   total: number;
   page: number;
   limit: number;
@@ -319,8 +323,21 @@ export async function listPublications(query: ListPublicationsQuery): Promise<{
   const avgRating =
     totalRatings > 0 ? Math.round((weightedSum / totalRatings) * 10) / 10 : 0;
 
+  const authorIds = Array.from(new Set(data.map((publication) => publication.authorId)));
+  const authorEntries = await Promise.all(
+    authorIds.map(async (authorId) => [authorId, await fetchAuthor(authorId)] as const)
+  );
+  const authorsById = new Map(authorEntries);
+
+  const dataWithAuthors = data.map((publication) =>
+    mapToResponse({
+      ...publication,
+      author: authorsById.get(publication.authorId) ?? null,
+    }) as PublicationWithAuthorResponse
+  );
+
   return {
-    data: data.map(mapToResponse),
+    data: dataWithAuthors,
     total,
     page,
     limit,
