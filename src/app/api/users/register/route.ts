@@ -16,12 +16,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(response, { status: 400 });
         }
 
+        // Note: registerUser in users.service should ideally return the session token if auto-confirm is ON
         const user = await registerUser(validation.data);
 
         return NextResponse.json(
             {
                 message: "Usuario registrado exitosamente.",
                 user,
+                token: "", // Placeholder or find how to get it from signup
             },
             { status: 201 }
         );

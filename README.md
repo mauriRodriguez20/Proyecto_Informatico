@@ -97,7 +97,7 @@ npm run dev -- --port 3001
 
 ## Correcciones Realizadas
 
-- **CORS**: Se agregó `next.config.mjs` para permitir peticiones desde `http://localhost:3000`.
+- **CORS**: Se implementó una configuración dinámica en `middleware.ts` que permite los orígenes `http://localhost:3000` y `http://127.0.0.1:3000`, habilitando credenciales y los métodos necesarios (`GET, POST, PUT, PATCH, DELETE, OPTIONS`). Se removió la configuración estática de `next.config.mjs` para evitar conflictos.
 - **Imports**: Se corrigieron rutas de importación en los endpoints de `login`, `register` y `logout` que apuntaban a carpetas inexistentes.
 
 ## Scripts Disponibles

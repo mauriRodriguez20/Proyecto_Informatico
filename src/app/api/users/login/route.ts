@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(response, { status: 400 });
         }
 
-        const { user, accessToken } = await loginUser(validation.data);
+        const { user, accessToken: token } = await loginUser(validation.data);
 
         return NextResponse.json(
             {
                 message: "Inicio de sesion exitoso.",
                 user,
-                accessToken,
+                token,
             },
             { status: 200 }
         );
