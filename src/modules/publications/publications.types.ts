@@ -22,6 +22,9 @@ export interface PublicationWithAuthor extends PublicationWithTags {
   author: AuthorSnapshot | null;
 }
 
+export type PublicationResponse = PublicationWithTags & { content: string };
+export type PublicationWithAuthorResponse = PublicationWithAuthor & { content: string };
+
 export interface AuthorSnapshot {
   id: string;
   name: string;
@@ -34,11 +37,13 @@ export interface CreatePublicationInput {
   area: Area;
   title: string;
   description: string;
+  content?: string;
   errorCode?: string;
   solution?: string;
   codeBlock?: string;
   language?: string;
   technologyIds?: string[];
+  technologyId?: string;
   technologyNames?: string[];
 }
 
@@ -46,11 +51,13 @@ export interface UpdatePublicationInput {
   area?: Area;
   title?: string;
   description?: string;
+  content?: string;
   errorCode?: string | null;
   solution?: string | null;
   codeBlock?: string | null;
   language?: string | null;
   technologyIds?: string[];
+  technologyId?: string;
   technologyNames?: string[];
 }
 

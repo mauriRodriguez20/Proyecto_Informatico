@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
     const parsed = createPublicationSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error("[POST /api/publications] Validation failed:", JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
       return NextResponse.json(
         { error: "Datos invalidos.", details: parsed.error.flatten().fieldErrors },
         { status: 400 }

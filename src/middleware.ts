@@ -51,9 +51,11 @@ export default async function middleware(req: NextRequest) {
   // 5. Verificar el token con Supabase Auth
   const {
     data: { user },
+    error
   } = await supabase.auth.getUser(bearerToken ?? undefined);
 
-  if (!user) {
+  if (error || !user) {
+    console.error("[Middleware] Auth failed. Error:", error?.message);
     return NextResponse.json(
       { error: "No autorizado. Debes iniciar sesión." },
       { status: 401 }

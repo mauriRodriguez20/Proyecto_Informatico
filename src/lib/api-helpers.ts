@@ -49,20 +49,11 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
     : null;
 
   if (!token) {
+    console.warn("[withAuth] No token found in Authorization header");
     return {
       userId: null,
       errorResponse: NextResponse.json(
         { error: "Token de autenticacion requerido." },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (isTokenExpiredByPolicy(token)) {
-    return {
-      userId: null,
-      errorResponse: NextResponse.json(
-        { error: "No autorizado. La sesion expiro (maximo 24 horas)." },
         { status: 401 }
       ),
     };
@@ -92,9 +83,11 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
 
   const {
     data: { user },
+    error
   } = await supabase.auth.getUser(token);
 
-  if (!user) {
+  if (error || !user) {
+    console.error("[withAuth] Auth failed for token:", token.slice(0, 20) + "...", "Error:", error?.message);
     return {
       userId: null,
       errorResponse: NextResponse.json(

@@ -6,7 +6,16 @@ import type {
   PublicationWithTags,
   PublicationWithAuthor,
   AuthorSnapshot,
+  PublicationResponse,
+  PublicationWithAuthorResponse,
 } from "./publications.types";
+
+function mapToResponse<T extends PublicationWithTags>(pub: T): T & { content: string } {
+  return {
+    ...pub,
+    content: pub.description,
+  };
+}
 
 const LANGUAGE_ALIASES: Record<string, string> = {
   js: "javascript",
@@ -126,7 +135,10 @@ async function fetchAuthor(authorId: string): Promise<AuthorSnapshot | null> {
     const res = await fetch(`${process.env.MS01_URL}/api/users/${authorId}`, {
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[fetchAuthor] Failed to fetch author ${authorId} from MS-01. Status: ${res.status}`);
+      return null;
+    }
     const data = await res.json();
 
     return {
@@ -135,7 +147,8 @@ async function fetchAuthor(authorId: string): Promise<AuthorSnapshot | null> {
       avatarUrl: data.user?.avatarUrl ?? null,
       role: data.user?.role ?? "UNKNOWN",
     };
-  } catch {
+  } catch (error) {
+    console.error(`[fetchAuthor] Error connecting to MS-01 for author ${authorId}:`, error);
     return null;
   }
 }
@@ -144,12 +157,16 @@ export async function createPublication(
   authorId: string,
   data: CreatePublicationInput,
   authToken?: string
-): Promise<PublicationWithTags> {
+): Promise<PublicationResponse> {
   const {
     technologyIds = [],
     technologyNames = [],
     codeBlock,
     language,
+    // @ts-ignore
+    content: _content,
+    // @ts-ignore
+    technologyId: _technologyId,
     ...fields
   } = data;
 
@@ -159,7 +176,7 @@ export async function createPublication(
     authToken
   );
 
-  return prisma.publication.create({
+  const publication = await prisma.publication.create({
     data: {
       ...fields,
       authorId,
@@ -171,11 +188,13 @@ export async function createPublication(
     },
     include: { tags: true },
   });
+
+  return mapToResponse(publication);
 }
 
 export async function getPublicationById(
   id: string
-): Promise<PublicationWithAuthor | null> {
+): Promise<PublicationWithAuthorResponse | null> {
   const publication = await prisma.publication.findUnique({
     where: { id },
     include: { tags: true },
@@ -184,27 +203,31 @@ export async function getPublicationById(
   if (!publication) return null;
 
   const author = await fetchAuthor(publication.authorId);
-  return { ...publication, author };
+  return mapToResponse({ ...publication, author }) as PublicationWithAuthorResponse;
 }
 
 export async function updatePublication(
   id: string,
   data: UpdatePublicationInput,
   authToken?: string
-): Promise<PublicationWithTags> {
+): Promise<PublicationResponse> {
   const {
     technologyIds,
     technologyNames,
     language,
     codeBlock,
+    // @ts-ignore
+    content: _content,
+    // @ts-ignore
+    technologyId: _technologyId,
     ...fields
   } = data;
 
   let tagsUpdate:
     | {
-        deleteMany: {};
-        create: { technologyId: string }[];
-      }
+      deleteMany: {};
+      create: { technologyId: string }[];
+    }
     | undefined;
 
   if (technologyIds !== undefined || technologyNames !== undefined) {
@@ -234,11 +257,13 @@ export async function updatePublication(
     updateData.tags = tagsUpdate;
   }
 
-  return prisma.publication.update({
+  const updated = await prisma.publication.update({
     where: { id },
     data: updateData,
     include: { tags: true },
   });
+
+  return mapToResponse(updated);
 }
 
 export async function deletePublication(id: string): Promise<void> {
@@ -246,7 +271,7 @@ export async function deletePublication(id: string): Promise<void> {
 }
 
 export async function listPublications(query: ListPublicationsQuery): Promise<{
-  data: PublicationWithTags[];
+  data: PublicationResponse[];
   total: number;
   page: number;
   limit: number;
@@ -295,7 +320,7 @@ export async function listPublications(query: ListPublicationsQuery): Promise<{
     totalRatings > 0 ? Math.round((weightedSum / totalRatings) * 10) / 10 : 0;
 
   return {
-    data,
+    data: data.map(mapToResponse),
     total,
     page,
     limit,
