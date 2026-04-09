@@ -17,52 +17,47 @@ Este microservicio sigue las convenciones del **Developer's Portal**:
 
 | Funcionalidad | Método | Ruta | Protegido | Notas |
 | :--- | :--- | :--- | :--- | :--- |
-| **Listar / Filtrar** | `GET` | `/api/publications` | No | Soporta query params: `type`, `area`, `technologyId`, `sortBy`, `page`. |
-| **Ver Detalle** | `GET` | `/api/publications/:id` | No | Retorna la publicación + datos del autor (cross-fetch). |
-| **Crear** | `POST` | `/api/publications` | **Sí** | Requiere Session Token. Validación condicional activada. |
-| **Editar** | `PATCH` | `/api/publications/:id` | **Sí** | Solo el autor puede realizar esta acción. |
-| **Eliminar** | `DELETE`| `/api/publications/:id` | **Sí** | Solo el autor puede realizar esta acción. |
+| **Listar / Filtrar** | `GET` | `/api/publications` | No | Retorna campo `content` (alias de `description`). |
+| **Ver Detalle** | `GET` | `/api/publications/:id` | No | Retorna campo `content`. Incluye autor. |
+| **Crear** | `POST` | `/api/publications` | **Sí** | Acepta `content` y `technologyId`. |
+| **Editar** | `PATCH` | `/api/publications/:id` | **Sí** | Acepta `content` y `technologyId`. |
+| **Eliminar** | `DELETE`| `/api/publications/:id` | **Sí** | Limpieza automática de etiquetas. |
 
-### Parámetros de Listado (`GET /api/publications`)
-- `type`: `ERROR_SOLUTION` o `CODE_SNIPPET`.
-- `area`: `FRONTEND` o `BACKEND`.
-- `technologyId`: UUID de la tecnología (del catálogo de MS-01).
-- `sortBy`: `recent` (default) o `most_voted`.
-- `page`: Paginación automática en grupos de **10**.
+### Sincronización de Campos
+Para facilitar la integración, el backend ahora mapea automáticamente los campos del frontend:
+- **`content`** (Frontend) ↔ **`description`** (Database).
+- **`technologyId`** (Frontend) ↔ **`technologyIds`** (Database).
 
 ---
 
-## 📋 Reglas de Validación (POST/PATCH)
-Al crear o editar, el backend valida lo siguiente:
-- **Si el tipo es `ERROR_SOLUTION`**: Son obligatorios los campos `errorCode` y `solution`.
-- **Si el tipo es `CODE_SNIPPET`**: Son obligatorios los campos `codeBlock` y `language`.
-- **Título**: Mínimo 10 caracteres.
-- **Etiquetas**: Máximo 5 por publicación.
-
----
-
-##  Ejecución Local
+## Ejecución Local
 
 1.  **Instalar dependencias**:
     ```bash
     npm install
     ```
 2.  **Configurar Variables de Entorno**:
-    Crea un archivo `.env` basado en las credenciales de Supabase del proyecto `hwijeokbenqzlrlukown`. Asegúrate de definir `MS01_URL` para el cross-fetching.
+    Crea un archivo `.env` basado en las credenciales de Supabase. Define:
+    - `MS01_URL=http://localhost:3001` (para cross-fetch de autores).
+    - `SUPABASE_URL` y `SUPABASE_ANON_KEY`.
 3.  **Sincronizar DB**:
     ```bash
     npx prisma generate
     npx prisma db push
     ```
-4.  **Iniciar Servidor**:
+4.  **Iniciar Servidor en puerto 3002**:
     ```bash
-    npm run dev
+    npm run dev -- --port 3002
     ```
 
 ---
 
-## Requisito de Autenticación
-Para los endpoints protegidos, el Frontend debe enviar el **Bearer Token** o la cookie de sesión gestionada por `@supabase/ssr`, tal como se definió en el middleware compartido.
+## Notas Adicionales
+- **IMPORTANTE**: Este microservicio (MS-02) debe correr en el puerto **3002**. El MS-01 (Usuarios) debe correr en el **3001**.
+- El backend incluye configuración de **CORS** para permitir peticiones desde `http://localhost:3000`.
+- Para poblar el catálogo de tecnologías, se debe ejecutar el `seed` en el **Microservicio 01 (Usuarios)**.
+
+---
 
 ## Comandos Útiles
 
@@ -76,9 +71,3 @@ npx prisma generate
 # Abrir visor de base de datos local
 npx prisma studio
 ```
-
----
-
-## Notas Adicionales
-- Para poblar el catálogo de tecnologías, se debe ejecutar el `seed` en el **Microservicio 01 (Usuarios)**, ya que es el encargado de gestionar esa entidad compartida.
-- Asegúrate de tener el MS-01 corriendo localmente para que el cross-fetching de autores funcione correctamente.
