@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+    --color-brand-blue: #3b82f6;
+    --color-brand-purple: #8b5cf6;
+    --color-dark-bg: #020617;
+}
+
+/* Custom layers in Tailwind v4 */
+@utility text-balance {
+    text-wrap: balance;
+}
+
+@utility shadow-glass {
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+:root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 2, 6, 23;
+    --background-end-rgb: 0, 0, 0;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+body {
+    color: rgb(var(--foreground-rgb));
+    background: black;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes gradient-flow {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.animate-gradient-flow {
+    animation: gradient-flow 6s ease infinite;
+}

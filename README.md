@@ -55,42 +55,58 @@ Roles disponibles: `FRONTEND`, `BACKEND`.
 
 ---
 
-## Configuración del entorno
+## Configuración Inicial
 
-Crear un archivo `.env` en la raíz con las siguientes variables:
+### 1. Variables de Entorno
+Crea un archivo `.env` en la raíz del proyecto con los siguientes valores:
 
 ```env
-DATABASE_URL=postgresql://...
-DIRECT_URL=postgresql://...
+NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_SUPABASE_URL=https://...supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
 ```
 
-Ambas URLs (`DATABASE_URL` y `DIRECT_URL`) deben ser las mismas que usen los demás microservicios del portal para compartir la base de datos.
+> [!IMPORTANT]
+> El backend está configurado para correr en el puerto **3001** para evitar conflictos con el frontend (puerto 3000). El `NEXT_PUBLIC_API_URL` debe apuntar al puerto 3001.
 
----
-
-## Comandos
+### 2. Inicialización de Base de Datos
+Sigue estos pasos para sincronizar tu base de datos local con Supabase:
 
 ```bash
 # Instalar dependencias
 npm install
 
-# Ejecutar en desarrollo
-npm run dev
-
-# Sincronizar schema con Supabase
-npm run db:push
-
-# Regenerar cliente de Prisma
+# Generar el cliente de Prisma
 npm run db:generate
 
-# Abrir Prisma Studio
-npm run db:studio
+# Sincronizar el esquema con Supabase
+npm run db:push
 
 # Poblar el catálogo de tecnologías
 npm run db:seed
 ```
+
+### 3. Ejecución
+Para iniciar el servidor de desarrollo en el puerto correcto:
+
+```bash
+npm run dev -- --port 3001
+```
+
+## Correcciones Realizadas
+
+- **CORS**: Se agregó `next.config.mjs` para permitir peticiones desde `http://localhost:3000`.
+- **Imports**: Se corrigieron rutas de importación en los endpoints de `login`, `register` y `logout` que apuntaban a carpetas inexistentes.
+
+## Scripts Disponibles
+
+- `npm run dev`: Inicia el servidor.
+- `npm run db:push`: Aplica cambios del schema a la base de datos.
+- `npm run db:generate`: Regenera el cliente de Prisma.
+- `npm run db:studio`: Abre una interfaz visual para explorar la base de datos.
+- `npm run db:seed`: Puebla la base de datos con datos iniciales (tecnologías).
 
 ---
 
