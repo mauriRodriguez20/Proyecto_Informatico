@@ -1,0 +1,101 @@
+// ============================================================
+// Developer's Portal - Microservicio 03 (Questions & Answers)
+// Schema: questions
+// Arquitectura: Multi-Schema (comparte el proyecto Supabase con MS-01/MS-02)
+//
+// REGLAS:
+// - Todos los modelos deben incluir @@schema("questions")
+// - No se duplica el modelo User aqui.
+//   Datos de autor y catalogo de tecnologias se consultan via API de MS-01.
+// ============================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["questions"]
+}
+
+enum Area {
+  FRONTEND
+  BACKEND
+
+  @@schema("questions")
+}
+
+model Question {
+  id          String   @id @default(uuid())
+  authorId    String
+  area        Area
+  title       String
+  description String
+  codeBlock   String?
+  language    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tags    QuestionTag[]
+  answers Answer[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("questions")
+  @@schema("questions")
+}
+
+model QuestionTag {
+  questionId   String
+  technologyId String // UUID del catalogo de MS-01
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, technologyId])
+  @@index([technologyId])
+  @@map("question_tags")
+  @@schema("questions")
+}
+
+model Answer {
+  id         String   @id @default(uuid())
+  questionId String
+  authorId   String
+  content    String
+  codeBlock  String?
+  language   String?
+  isAccepted Boolean  @default(false)
+  voteScore  Int      @default(0) // suma neta de votos (+1 / -1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  votes    AnswerVote[]
+
+  @@index([questionId])
+  @@index([authorId])
+  @@index([questionId, isAccepted])
+  @@index([voteScore])
+  @@map("answers")
+  @@schema("questions")
+}
+
+model AnswerVote {
+  id        String   @id @default(uuid())
+  answerId  String
+  voterId   String
+  value     Int // permitido por validacion: 1 o -1
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  answer Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, voterId])
+  @@index([voterId])
+  @@index([answerId, value])
+  @@map("answer_votes")
+  @@schema("questions")
+}
