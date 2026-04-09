@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { loginSchema } from "@/shared/users.schema";
-import { loginUser } from "@/server/users/users.service";
-import type { ErrorResponse } from "@/shared/users.types";
+import { loginSchema } from "@/modules/users/users.schema";
+import { loginUser } from "@/modules/users/users.service";
+import type { ErrorResponse } from "@/modules/users/users.types";
 
 export async function POST(req: NextRequest) {
     try {

@@ -91,6 +91,13 @@ export async function PATCH(
       return NextResponse.json(response, { status: 400 });
     }
 
+    if (err.message === "USERNAME_ALREADY_EXISTS") {
+      const response: ErrorResponse = {
+        error: "El nombre de usuario ya esta en uso.",
+      };
+      return NextResponse.json(response, { status: 409 });
+    }
+
     console.error("[PATCH /api/users/:id]", err.message);
     const response: ErrorResponse = { error: "Error interno del servidor." };
     return NextResponse.json(response, { status: 500 });

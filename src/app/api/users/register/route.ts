@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerSchema } from "@/shared/users.schema";
-import { registerUser } from "@/server/users/users.service";
-import type { ErrorResponse } from "@/shared/users.types";
+import { registerSchema } from "@/modules/users/users.schema";
+import { registerUser } from "@/modules/users/users.service";
+import type { ErrorResponse } from "@/modules/users/users.types";
 
 export async function POST(req: NextRequest) {
     try {
@@ -16,14 +16,13 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(response, { status: 400 });
         }
 
-        // Note: registerUser in users.service should ideally return the session token if auto-confirm is ON
-        const user = await registerUser(validation.data);
+        const { user, accessToken } = await registerUser(validation.data);
 
         return NextResponse.json(
             {
                 message: "Usuario registrado exitosamente.",
                 user,
-                token: "", // Placeholder or find how to get it from signup
+                token: accessToken ?? "",
             },
             { status: 201 }
         );
