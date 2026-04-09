@@ -1,0 +1,168 @@
+{
+  "info": {
+    "_postman_id": "c4dbdd0f-924e-4f81-8f53-39e2bdfe8f2f",
+    "name": "MS03 - Questions & Answers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Coleccion para probar la Epica 3 (MS-03)."
+  },
+  "item": [
+    {
+      "name": "Questions",
+      "item": [
+        {
+          "name": "Create Question",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area\": \"BACKEND\",\n  \"title\": \"Error al conectar Prisma con Supabase en produccion\",\n  \"description\": \"Tengo un timeout intermitente al ejecutar consultas en Vercel.\",\n  \"codeBlock\": \"const prisma = new PrismaClient();\",\n  \"language\": \"typescript\",\n  \"technologyIds\": [\"11111111-1111-1111-1111-111111111111\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?page=1&unanswered=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "unanswered", "value": "false" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Unanswered Questions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions?page=1&unanswered=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "unanswered", "value": "true" }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Question Detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Answers",
+      "item": [
+        {
+          "name": "Create Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Puedes resolverlo con reuso de PrismaClient en runtime.\",\n  \"codeBlock\": \"export const prisma = globalForPrisma.prisma ?? new PrismaClient();\",\n  \"language\": \"typescript\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}/answers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}", "answers"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Edit Answer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Actualizo la respuesta con una solucion mas estable.\",\n  \"codeBlock\": \"// codigo actualizado\",\n  \"language\": \"typescript\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}/answers/{{answerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}", "answers", "{{answerId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Answer",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}/answers/{{answerId}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}", "answers", "{{answerId}}", "accept"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Vote Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/questions/{{questionId}}/answers/{{answerId}}/vote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "questions", "{{questionId}}", "answers", "{{answerId}}", "vote"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "answerId", "value": "" }
+  ]
+}
