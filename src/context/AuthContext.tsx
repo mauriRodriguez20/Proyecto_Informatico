@@ -2,7 +2,22 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { AuthUser, LoginCredentials, RegisterData } from '@/types/auth.types';
+import { UserProfile } from '@/types/user.types';
+import { userService } from '@/services/user.service';
 import LoadingOverlay from '@/components/shared/LoadingOverlay/LoadingOverlay';
+
+/** Map a backend UserProfile to the frontend AuthUser shape */
+function toAuthUser(profile: UserProfile): AuthUser {
+    return {
+        id: profile.id,
+        username: profile.username,
+        email: profile.email,
+        role: profile.role,
+        rating: profile.rating ?? 0,
+        avatarUrl: profile.avatarUrl,
+        createdAt: profile.createdAt,
+    };
+}
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -10,7 +25,7 @@ interface AuthContextType {
     error: string | null;
     login: (credentials: LoginCredentials) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
     updateUser: (data: Partial<AuthUser>) => void;
 }
 
@@ -41,24 +56,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         setError(null);
         try {
-            // Mock de delay
-            await new Promise((r) => setTimeout(r, 1500));
+            setLoadingMessage('Validating credentials...');
+            const { token, user: profile } = await userService.login(credentials);
+
             setLoadingMessage('Preparing your workspace...');
-            await new Promise((r) => setTimeout(r, 800));
-
-            const mockUser: AuthUser = {
-                id: '1',
-                username: credentials.email.split('@')[0],
-                email: credentials.email,
-                role: 'FRONTEND',
-                rating: 4.9
-            };
-
-            setUser(mockUser);
-            localStorage.setItem('user', JSON.stringify(mockUser));
-            localStorage.setItem('auth_token', 'mock_token_' + mockUser.id); // Save token for services
+            const authUser = toAuthUser(profile);
+            setUser(authUser);
+            localStorage.setItem('auth_token', token);
+            localStorage.setItem('user', JSON.stringify(authUser));
         } catch (err: any) {
-            setError('Login failed');
+            setError(err.message || 'Login failed');
             throw err;
         } finally {
             setLoading(false);
@@ -66,36 +73,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const register = useCallback(async (data: RegisterData) => {
+        setLoadingMessage('Creating your account...');
         setLoading(true);
         setError(null);
         try {
-            await new Promise((r) => setTimeout(r, 1200));
+            const { token, user: profile } = await userService.register(data);
 
-            const mockUser: AuthUser = {
-                id: Math.random().toString(36).substr(2, 9),
-                username: data.username,
-                email: data.email,
-                role: data.role,
-                rating: 5.0
-            };
-
-            setUser(mockUser);
-            localStorage.setItem('user', JSON.stringify(mockUser));
-            localStorage.setItem('auth_token', 'mock_token_' + mockUser.id); // Save token for services
+            const authUser = toAuthUser(profile);
+            setUser(authUser);
+            localStorage.setItem('auth_token', token);
+            localStorage.setItem('user', JSON.stringify(authUser));
         } catch (err: any) {
-            setError('Registration failed');
+            setError(err.message || 'Registration failed');
             throw err;
         } finally {
             setLoading(false);
         }
     }, []);
 
-    const logout = useCallback(() => {
-        setUser(null);
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth_token'); // Clear token
-        localStorage.removeItem('access_token');
-        setError(null);
+    const logout = useCallback(async () => {
+        try {
+            // Notify backend to invalidate the session token
+            await userService.logout();
+        } catch {
+            // Ignore network errors on logout — still clear local session
+        } finally {
+            setUser(null);
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            setError(null);
+        }
     }, []);
 
     const updateUser = useCallback((newData: Partial<AuthUser>) => {

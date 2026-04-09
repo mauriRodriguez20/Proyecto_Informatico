@@ -1,105 +1,86 @@
+/**
+ * publication.service.ts
+ * Service for all Backend 2 /api/publications/* endpoints.
+ * Uses the shared apiRequest helper from @/lib/api.
+ */
+import { apiRequest, BASE_URL_MS02 } from '@/lib/api';
 import {
     Publication,
     PublicationFilters,
     CreatePublicationDto,
     UpdatePublicationDto,
-    Comment
+    Comment,
 } from '@/types/publications.types';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
-async function handleResponse(response: Response) {
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-        throw new Error(error.message || 'API request failed');
-    }
-    return response.json();
-}
-
-function getAuthHeader(): Record<string, string> {
-    if (typeof window === 'undefined') return {};
-    const token = localStorage.getItem('auth_token');
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
 export const publicationService = {
-    async list(filters: PublicationFilters): Promise<{ data: Publication[], total: number }> {
+    /**
+     * GET /api/publications
+     * Lista y filtra publicaciones (público).
+     * Parámetros: type, area, technologyId, sortBy (recent|most_voted), page
+     */
+    async list(filters: PublicationFilters): Promise<{ data: Publication[]; total: number }> {
         const params = new URLSearchParams();
         if (filters.type) params.append('type', filters.type);
         if (filters.area) params.append('area', filters.area);
         if (filters.technologyId) params.append('technologyId', filters.technologyId);
-        if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.authorId) params.append('authorId', filters.authorId);
+        if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.page) params.append('page', filters.page.toString());
 
-        const response = await fetch(`${BASE_URL}/api/publications?${params.toString()}`);
-        return handleResponse(response);
+        return apiRequest<{ data: Publication[]; total: number }>(
+            BASE_URL_MS02,
+            `/api/publications?${params.toString()}`
+        );
     },
 
+    /**
+     * GET /api/publications/:id
+     * Retorna la publicación con datos del autor (cross-fetch con MS-01).
+     */
     async getById(id: string): Promise<Publication> {
-        const response = await fetch(`${BASE_URL}/api/publications/${id}`);
-        return handleResponse(response);
+        return apiRequest<Publication>(BASE_URL_MS02, `/api/publications/${id}`);
     },
 
+    /**
+     * POST /api/publications
+     * Crea una nueva publicación (requiere token de sesión).
+     */
     async create(data: CreatePublicationDto): Promise<Publication> {
-        const response = await fetch(`${BASE_URL}/api/publications`, {
+        return apiRequest<Publication>(BASE_URL_MS02, '/api/publications', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeader()
-            },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         });
-        return handleResponse(response);
     },
 
+    /**
+     * PATCH /api/publications/:id
+     * Edita una publicación (solo el autor).
+     */
     async update(id: string, data: UpdatePublicationDto): Promise<Publication> {
-        const response = await fetch(`${BASE_URL}/api/publications/${id}`, {
+        return apiRequest<Publication>(BASE_URL_MS02, `/api/publications/${id}`, {
             method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeader()
-            },
-            body: JSON.stringify(data)
+            body: JSON.stringify(data),
         });
-        return handleResponse(response);
     },
 
+    /**
+     * DELETE /api/publications/:id
+     * Elimina una publicación (solo el autor).
+     */
     async delete(id: string): Promise<void> {
-        const response = await fetch(`${BASE_URL}/api/publications/${id}`, {
+        return apiRequest<void>(BASE_URL_MS02, `/api/publications/${id}`, {
             method: 'DELETE',
-            headers: getAuthHeader()
         });
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: 'Failed to delete' }));
-            throw new Error(error.message);
-        }
     },
 
+    /**
+     * POST /api/publications/:id/comments
+     * Agrega un comentario a una publicación (autenticado).
+     */
     async addComment(publicationId: string, content: string): Promise<Comment> {
-        const response = await fetch(`${BASE_URL}/api/publications/${publicationId}/comments`, {
+        return apiRequest<Comment>(BASE_URL_MS02, `/api/publications/${publicationId}/comments`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeader()
-            },
-            body: JSON.stringify({ content })
+            body: JSON.stringify({ content }),
         });
-        return handleResponse(response);
     },
-
-    async rateAuthor(authorId: string, rating: number): Promise<void> {
-        const response = await fetch(`${BASE_URL}/api/users/${authorId}/rate`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                ...getAuthHeader()
-            },
-            body: JSON.stringify({ rating })
-        });
-        if (!response.ok) {
-            const error = await response.json().catch(() => ({ message: 'Failed to rate user' }));
-            throw new Error(error.message);
-        }
-    }
 };

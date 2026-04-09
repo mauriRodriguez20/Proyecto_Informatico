@@ -18,7 +18,13 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
     const [commentContent, setCommentContent] = useState('');
     const [isPosting, setIsPosting] = useState(false);
 
-    const isOwner = user?.id === publication.author.id;
+    // Edit state
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedTitle, setEditedTitle] = useState(publication.title);
+    const [editedContent, setEditedContent] = useState(publication.content);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const isOwner = user?.id === (publication.author?.id || publication.authorId);
     const date = new Date(publication.createdAt).toLocaleDateString();
 
     const handleSubmitComment = async (e: React.FormEvent) => {
@@ -29,7 +35,6 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         try {
             await publicationService.addComment(publication.id, commentContent);
             setCommentContent('');
-            // Usually we would refresh the list or add to local state
             alert('Comment added successfully!');
         } catch (err: any) {
             alert(err.message);
@@ -38,20 +43,37 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         }
     };
 
+    const handleUpdate = async () => {
+        if (!editedTitle.trim() || !editedContent.trim()) return;
+        setIsUpdating(true);
+        try {
+            const updated = await publicationService.update(publication.id, {
+                title: editedTitle,
+                content: editedContent
+            });
+            setIsEditing(false);
+            onUpdate?.(updated);
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     return (
         <article className={styles.card}>
             <header className={styles.header}>
                 <div className={styles.authorInfo}>
                     <div className={styles.avatar}>
-                        {publication.author.avatarUrl ? (
+                        {publication.author?.avatarUrl ? (
                             <img src={publication.author.avatarUrl} alt={publication.author.username} />
                         ) : (
-                            <span>{publication.author.username[0].toUpperCase()}</span>
+                            <span>{(publication.author?.username || 'U')[0].toUpperCase()}</span>
                         )}
                     </div>
                     <div>
-                        <h4 className={styles.authorName}>{publication.author.username}</h4>
-                        <span className={styles.meta}>{publication.author.role} • {date}</span>
+                        <h4 className={styles.authorName}>{publication.author?.username || `User ${publication.authorId.slice(0, 5)}`}</h4>
+                        <span className={styles.meta}>{publication.author?.role || 'Developer'} • {date}</span>
                     </div>
                 </div>
 
@@ -64,20 +86,46 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
             </header>
 
             <div className={styles.content}>
-                <h3 className={styles.title}>{publication.title}</h3>
-                <p className={styles.text}>{publication.content}</p>
+                {isEditing ? (
+                    <div className={styles.editForm}>
+                        <input
+                            type="text"
+                            value={editedTitle}
+                            onChange={(e) => setEditedTitle(e.target.value)}
+                            className={styles.editTitleInput}
+                        />
+                        <textarea
+                            value={editedContent}
+                            onChange={(e) => setEditedContent(e.target.value)}
+                            className={styles.editTextArea}
+                        />
+                        <div className={styles.editActions}>
+                            <button onClick={handleUpdate} disabled={isUpdating} className={styles.saveBtn}>
+                                {isUpdating ? 'Saving...' : 'Save'}
+                            </button>
+                            <button onClick={() => setIsEditing(false)} className={styles.cancelBtn}>
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <h3 className={styles.title}>{publication.title}</h3>
+                        <p className={styles.text}>{publication.content}</p>
+                    </>
+                )}
                 {publication.imageUrl && (
                     <div className={styles.imageWrapper}>
                         <img src={publication.imageUrl} alt={publication.title} />
                     </div>
                 )}
-                {publication.technology && (
+                {publication.technologyName && (
                     <div className={styles.techTag}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={14} height={14}>
                             <polyline points="16 18 22 12 16 6" />
                             <polyline points="8 6 2 12 8 18" />
                         </svg>
-                        {publication.technology}
+                        {publication.technologyName}
                     </div>
                 )}
             </div>
@@ -100,7 +148,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
 
                 {isOwner && (
                     <div className={styles.ownerActions}>
-                        <button className={styles.actionBtn}>
+                        <button className={styles.actionBtn} onClick={() => setIsEditing(true)}>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                             </svg>

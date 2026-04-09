@@ -1,14 +1,29 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { PublicationType, DevArea } from '@/types/publications.types';
 import { publicationService } from '@/services/publication.service';
+import { technologyService } from '@/services/technology.service';
+import { Technology } from '@/types/user.types';
 import styles from './PublicationCreate.module.css';
 
 interface PublicationCreateProps {
     onSuccess?: () => void;
 }
+
+const FALLBACK_TECHNOLOGIES: Technology[] = [
+    { id: '1', name: 'React' },
+    { id: '2', name: 'Next.js' },
+    { id: '3', name: 'TypeScript' },
+    { id: '4', name: 'JavaScript' },
+    { id: '5', name: 'Node.js' },
+    { id: '6', name: 'Python' },
+    { id: '7', name: 'FastAPI' },
+    { id: '8', name: 'Tailwind CSS' },
+    { id: '9', name: 'PostgreSQL' },
+    { id: '10', name: 'Supabase' },
+];
 
 export default function PublicationCreate({ onSuccess }: PublicationCreateProps) {
     const { user } = useAuth();
@@ -18,9 +33,23 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
     const [content, setContent] = useState('');
     const [type, setType] = useState<PublicationType>('CODE_SNIPPET');
     const [area, setArea] = useState<DevArea>('FRONTEND');
-    const [technology, setTechnology] = useState('');
+    const [technologyId, setTechnologyId] = useState('');
+    const [technologies, setTechnologies] = useState<Technology[]>(FALLBACK_TECHNOLOGIES);
     const [imageUrl, setImageUrl] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    // Load technology catalog from Backend 1 on mount
+    useEffect(() => {
+        technologyService.list()
+            .then(fetchedTechs => {
+                if (fetchedTechs && fetchedTechs.length > 0) {
+                    setTechnologies(fetchedTechs);
+                }
+            })
+            .catch(() => {
+                console.warn('Using fallback technologies due to fetch failure');
+            });
+    }, []);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,14 +68,14 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
                 content,
                 type,
                 area,
-                technology,
+                technologyId,
                 imageUrl: imageUrl || undefined
             });
 
             // Reset form
             setTitle('');
             setContent('');
-            setTechnology('');
+            setTechnologyId('');
             setImageUrl('');
             setIsExpanded(false);
             onSuccess?.();
@@ -146,13 +175,19 @@ export default function PublicationCreate({ onSuccess }: PublicationCreateProps)
 
                     <div className={styles.field}>
                         <label>Technology</label>
-                        <input
-                            type="text"
-                            placeholder="e.g. Next.js, FastAPI, CSS..."
+                        <select
                             className={styles.techInput}
-                            value={technology}
-                            onChange={(e) => setTechnology(e.target.value)}
-                        />
+                            value={technologyId}
+                            onChange={(e) => setTechnologyId(e.target.value)}
+                            required
+                        >
+                            <option value="" disabled>Select a technology...</option>
+                            {technologies.map(tech => (
+                                <option key={tech.id} value={tech.id}>
+                                    {tech.name}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     {imageUrl && (

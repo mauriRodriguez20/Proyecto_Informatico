@@ -13,7 +13,7 @@ interface PublicationFeedProps {
 export default function PublicationFeed({ authorId }: PublicationFeedProps) {
     const [publications, setPublications] = useState<Publication[]>([]);
     const [filters, setFilters] = useState<PublicationFilters>({
-        sortBy: 'latest',
+        sortBy: 'recent',
         authorId,
         page: 1
     });
@@ -74,14 +74,14 @@ export default function PublicationFeed({ authorId }: PublicationFeedProps) {
                     <span className={styles.sortLabel}>Sort by:</span>
                     <div className={styles.sortSegments}>
                         <button
-                            className={`${styles.sortBtn} ${filters.sortBy === 'latest' ? styles.active : ''}`}
-                            onClick={() => setFilters(prev => ({ ...prev, sortBy: 'latest' }))}
+                            className={`${styles.sortBtn} ${filters.sortBy === 'recent' ? styles.active : ''}`}
+                            onClick={() => setFilters(prev => ({ ...prev, sortBy: 'recent' }))}
                         >
                             Latest
                         </button>
                         <button
-                            className={`${styles.sortBtn} ${filters.sortBy === 'popular' ? styles.active : ''}`}
-                            onClick={() => setFilters(prev => ({ ...prev, sortBy: 'popular' }))}
+                            className={`${styles.sortBtn} ${filters.sortBy === 'most_voted' ? styles.active : ''}`}
+                            onClick={() => setFilters(prev => ({ ...prev, sortBy: 'most_voted' }))}
                         >
                             Popular
                         </button>
@@ -111,6 +111,7 @@ export default function PublicationFeed({ authorId }: PublicationFeedProps) {
                             key={pub.id}
                             publication={pub}
                             onDelete={handleDelete}
+                            onUpdate={loadPublications}
                         />
                     ))}
                 </div>

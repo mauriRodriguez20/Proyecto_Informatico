@@ -23,9 +23,13 @@ export interface Publication {
     content: string;
     type: PublicationType;
     area: DevArea;
-    technology: string;
+    /** UUID of the technology from the MS-01 catalog */
+    technologyId: string;
+    /** Human-readable technology name returned by cross-fetch with MS-01 */
+    technologyName?: string;
     imageUrl?: string;
-    author: Author;
+    authorId: string;
+    author?: Author;
     createdAt: string;
     updatedAt: string;
     commentsCount: number;
@@ -38,7 +42,8 @@ export interface CreatePublicationDto {
     content: string;
     type: PublicationType;
     area: DevArea;
-    technology: string;
+    /** UUID of the technology from GET /api/technologies (MS-01) */
+    technologyId: string;
     imageUrl?: string;
 }
 
@@ -49,6 +54,7 @@ export interface PublicationFilters {
     area?: DevArea;
     technologyId?: string;
     authorId?: string;
-    sortBy?: 'latest' | 'popular';
+    /** Backend 2 values: 'recent' (default) | 'most_voted' */
+    sortBy?: 'recent' | 'most_voted';
     page?: number;
 }
