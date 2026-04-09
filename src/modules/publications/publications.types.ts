@@ -1,8 +1,4 @@
-import { PublicationType, Area } from "@prisma/client";
-
-// ──────────────────────────────────────────────────────────────
-//  Tipos del dominio de Publicaciones
-// ──────────────────────────────────────────────────────────────
+﻿import { PublicationType, Area } from "@prisma/client";
 
 export interface PublicationWithTags {
   id: string;
@@ -26,7 +22,6 @@ export interface PublicationWithAuthor extends PublicationWithTags {
   author: AuthorSnapshot | null;
 }
 
-// Datos del autor traídos via cross-fetch desde MS-01
 export interface AuthorSnapshot {
   id: string;
   name: string;
@@ -44,6 +39,7 @@ export interface CreatePublicationInput {
   codeBlock?: string;
   language?: string;
   technologyIds?: string[];
+  technologyNames?: string[];
 }
 
 export interface UpdatePublicationInput {
@@ -55,11 +51,13 @@ export interface UpdatePublicationInput {
   codeBlock?: string | null;
   language?: string | null;
   technologyIds?: string[];
+  technologyNames?: string[];
 }
 
 export interface ListPublicationsQuery {
   type?: PublicationType;
   area?: Area;
+  authorId?: string;
   technologyId?: string;
   sortBy?: "recent" | "most_voted";
   page: number;
