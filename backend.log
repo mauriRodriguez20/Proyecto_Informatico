@@ -1,0 +1,60 @@
+
+> backend-proyecto@1.0.0 dev:3002
+> next dev -p 3002
+
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/santiagovalencia/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /Users/santiagovalencia/Documents/proyecto inf backend 1/Proyecto_Informatico/package-lock.json
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://192.168.1.8:3002
+- Environments: .env
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 650ms
+[GET /api/publications] TypeError: Cannot read properties of undefined (reading 'findMany')
+    at listPublications (src/modules/publications/publications.service.ts:300:24)
+    at GET (src/app/api/publications/route.ts:36:42)
+  298 |
+  299 |   const [data, total, ratingRows] = await prisma.$transaction([
+> 300 |     prisma.publication.findMany({
+      |                        ^
+  301 |       where,
+  302 |       include: { tags: true },
+  303 |       orderBy,
+ GET /api/publications 500 in 333ms (compile: 172ms, proxy.ts: 62ms, render: 98ms)
+ OPTIONS /api/publications?sortBy=recent&page=1 204 in 68ms (compile: 48ms, proxy.ts: 5ms, render: 15ms)
+ OPTIONS /api/publications?sortBy=recent&page=1 204 in 140ms (compile: 64ms, proxy.ts: 74ms, render: 2ms)
+[GET /api/publications] TypeError: Cannot read properties of undefined (reading 'findMany')
+    at listPublications (src/modules/publications/publications.service.ts:300:24)
+    at GET (src/app/api/publications/route.ts:36:42)
+  298 |
+  299 |   const [data, total, ratingRows] = await prisma.$transaction([
+> 300 |     prisma.publication.findMany({
+      |                        ^
+  301 |       where,
+  302 |       include: { tags: true },
+  303 |       orderBy,
+ GET /api/publications?sortBy=recent&page=1 500 in 66ms (compile: 3ms, proxy.ts: 1903µs, render: 61ms)
+[GET /api/publications] TypeError: Cannot read properties of undefined (reading 'findMany')
+    at listPublications (src/modules/publications/publications.service.ts:300:24)
+    at GET (src/app/api/publications/route.ts:36:42)
+  298 |
+  299 |   const [data, total, ratingRows] = await prisma.$transaction([
+> 300 |     prisma.publication.findMany({
+      |                        ^
+  301 |       where,
+  302 |       include: { tags: true },
+  303 |       orderBy,
+ GET /api/publications?sortBy=recent&page=1 500 in 89ms (compile: 5ms, proxy.ts: 5ms, render: 80ms)
+Persisting failed: Unable to write SST file 00000303.sst
+
+Caused by:
+    No such file or directory (os error 2)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)

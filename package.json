@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:3002": "next dev -p 3002",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -11,7 +12,6 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio"
   },
-
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@supabase/ssr": "^0.3.0",
@@ -33,4 +33,3 @@
     "typescript": "^5"
   }
 }
-
