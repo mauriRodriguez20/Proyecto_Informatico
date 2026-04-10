@@ -88,6 +88,12 @@
     z-index: 100;
 }
 
+.headerActions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+}
+
 .main {
     flex: 1;
     padding: var(--space-8);

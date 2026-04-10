@@ -5,6 +5,8 @@ import { Publication } from '@/types/publications.types';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
 import MarkdownContent from '@/components/shared/MarkdownContent/MarkdownContent';
+import CommentsSection from './CommentsSection';
+import StarRating from './StarRating';
 import styles from './PublicationCard.module.css';
 
 interface PublicationCardProps {
@@ -16,8 +18,11 @@ interface PublicationCardProps {
 export default function PublicationCard({ publication, onDelete, onUpdate }: PublicationCardProps) {
     const { user } = useAuth();
     const [showComments, setShowComments] = useState(false);
-    const [commentContent, setCommentContent] = useState('');
-    const [isPosting, setIsPosting] = useState(false);
+    const [commentsCount, setCommentsCount] = useState(publication.commentsCount);
+    const [comments] = useState(publication.comments ?? []);
+
+    // Rating state
+    const [authorRating, setAuthorRating] = useState(publication.author?.rating || 0);
 
     // Edit state
     const [isEditing, setIsEditing] = useState(false);
@@ -35,22 +40,6 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
             ? publication.description
             : '';
 
-    const handleSubmitComment = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!commentContent.trim() || isPosting) return;
-
-        setIsPosting(true);
-        try {
-            await publicationService.addComment(publication.id, commentContent);
-            setCommentContent('');
-            alert('Comment added successfully!');
-        } catch (err: any) {
-            alert(err.message);
-        } finally {
-            setIsPosting(false);
-        }
-    };
-
     const handleUpdate = async () => {
         if (!editedTitle.trim() || !editedContent.trim()) return;
         setIsUpdating(true);
@@ -61,10 +50,21 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
             });
             setIsEditing(false);
             onUpdate?.(updated);
-        } catch (err: any) {
-            alert(err.message);
+        } catch (err: unknown) {
+            alert(err instanceof Error ? err.message : 'Error updating publication');
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleRate = async (rating: number) => {
+        try {
+            const result = await publicationService.rate(publication.id, rating);
+            // Updating the author's rating in real-time for this card
+            // In a real app, this might come from a global state or websocket
+            setAuthorRating(result.averageRating);
+        } catch (err: any) {
+            alert(err.message || 'Error submitting rating');
         }
     };
 
@@ -80,7 +80,15 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
                         )}
                     </div>
                     <div>
-                        <h4 className={styles.authorName}>{publication.author?.username || `User ${publication.authorId.slice(0, 5)}`}</h4>
+                        <div className={styles.authorNameRow}>
+                            <h4 className={styles.authorName}>{publication.author?.username || `User ${publication.authorId.slice(0, 5)}`}</h4>
+                            <span className={styles.authorAvgRating}>
+                                <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                </svg>
+                                {Number(authorRating).toFixed(1)}
+                            </span>
+                        </div>
                         <span className={styles.meta}>{publication.author?.role || 'Developer'} • {date}</span>
                     </div>
                 </div>
@@ -154,17 +162,21 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
 
             <footer className={styles.footer}>
                 <div className={styles.stats}>
-                    <button className={styles.statBtn}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={18} height={18}>
-                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                        {publication.likesCount}
-                    </button>
-                    <button className={styles.statBtn} onClick={() => setShowComments(!showComments)}>
+                    <div className={styles.ratingWrapper}>
+                        <span className={styles.statLabel}>Rate this:</span>
+                        <StarRating onRate={handleRate} />
+                    </div>
+
+                    <button
+                        className={`${styles.statBtn} ${showComments ? styles.statBtnActive : ''}`}
+                        onClick={() => setShowComments(!showComments)}
+                        aria-expanded={showComments}
+                        aria-label="Toggle comments"
+                    >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={18} height={18}>
                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
                         </svg>
-                        {publication.commentsCount}
+                        {commentsCount}
                     </button>
                 </div>
 
@@ -185,40 +197,13 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
             </footer>
 
             {showComments && (
-                <div className={styles.commentsSection}>
-                    <form className={styles.commentForm} onSubmit={handleSubmitComment}>
-                        <input
-                            type="text"
-                            placeholder="Write a comment..."
-                            className={styles.commentInput}
-                            value={commentContent}
-                            onChange={(e) => setCommentContent(e.target.value)}
-                            disabled={isPosting}
-                        />
-                        <button className={styles.sendBtn} disabled={isPosting || !commentContent.trim()}>
-                            {isPosting ? <div className={styles.smallSpinner} /> : (
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={16} height={16}>
-                                    <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-                                </svg>
-                            )}
-                        </button>
-                    </form>
-                    <div className={styles.commentsList}>
-                        {publication.comments?.length ? (
-                            publication.comments.map((comment, idx) => (
-                                <div key={comment.id || idx} className={styles.comment}>
-                                    <div className={styles.commentHeader}>
-                                        <span className={styles.commentAuthor}>{comment.author?.username || 'User'}</span>
-                                        <span className={styles.commentDate}>{new Date(comment.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <MarkdownContent content={comment.content} className={styles.commentText} compact />
-                                </div>
-                            ))
-                        ) : (
-                            <p className={styles.noComments}>No comments yet. Be the first!</p>
-                        )}
-                    </div>
-                </div>
+                <CommentsSection
+                    id={publication.id}
+                    type="PUBLICATION"
+                    comments={comments}
+                    onCommentAdded={() => setCommentsCount(prev => prev + 1)}
+                    onCommentDeleted={() => setCommentsCount(prev => prev - 1)}
+                />
             )}
         </article>
     );

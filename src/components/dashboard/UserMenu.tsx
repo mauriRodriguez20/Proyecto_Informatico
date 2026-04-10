@@ -76,8 +76,16 @@ export default function UserMenu() {
 
                 <div className={styles.stats}>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{user.rating || 5.0}</span>
+                        <span className={styles.statValue}>{Number(user.rating || 5).toFixed(1)}</span>
                         <span className={styles.statLabel}>Rating</span>
+                    </div>
+                    <div className={styles.statItem}>
+                        <span className={styles.statValue}>12</span>
+                        <span className={styles.statLabel}>Comments</span>
+                    </div>
+                    <div className={styles.statItem}>
+                        <span className={styles.statValue}>4</span>
+                        <span className={styles.statLabel}>Solutions</span>
                     </div>
                 </div>
 

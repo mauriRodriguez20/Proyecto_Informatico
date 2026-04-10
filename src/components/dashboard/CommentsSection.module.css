@@ -1,0 +1,448 @@
+/* ──────────────────────────────────────────────
+   CommentsSection – Premium dark design
+   ────────────────────────────────────────────── */
+
+.root {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    animation: fadeInDown 0.3s var(--ease-out);
+    position: relative;
+}
+
+/* ── Toast ────────────────────────────────────── */
+.toast {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-lg);
+    font-size: 0.875rem;
+    font-weight: 600;
+    animation: slideInToast 0.3s var(--ease-bounce);
+    border: 1px solid transparent;
+}
+
+.toast_success {
+    background: var(--color-success-bg);
+    border-color: rgba(52, 211, 153, 0.3);
+    color: var(--color-success);
+}
+
+.toast_error {
+    background: var(--color-error-bg);
+    border-color: rgba(248, 113, 113, 0.3);
+    color: var(--color-error);
+}
+
+.toastIcon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.toastClose {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.6;
+    padding: 0 2px;
+    transition: opacity 0.15s;
+}
+
+.toastClose:hover {
+    opacity: 1;
+}
+
+/* ── Comment Form ─────────────────────────────── */
+.form {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+}
+
+.formAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    border: 1.5px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+
+.inputWrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.textarea {
+    width: 100%;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+    color: var(--color-text);
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    resize: vertical;
+    min-height: 72px;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.textarea::placeholder {
+    color: var(--color-text-subtle);
+}
+
+.textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.textareaError {
+    border-color: var(--color-error);
+    box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.15);
+}
+
+.formFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.charCount {
+    font-size: 0.75rem;
+    color: var(--color-text-subtle);
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s;
+}
+
+.charCountWarn {
+    color: var(--color-warning);
+}
+
+.charCountError {
+    color: var(--color-error);
+    font-weight: 700;
+}
+
+.submitBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: var(--radius-full);
+    font-size: 0.825rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    letter-spacing: 0.01em;
+}
+
+.submitBtn:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: var(--glow-sm);
+}
+
+.submitBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btnSpinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* ── Login Prompt ──────────────────────────────── */
+.loginPrompt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface-2);
+    border: 1px dashed var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-4);
+}
+
+/* ── Divider ──────────────────────────────────── */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+.dividerLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+/* ── Comments List ────────────────────────────── */
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+/* ── Single Comment ───────────────────────────── */
+.commentItem {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border-radius: var(--radius-lg);
+    transition: background 0.15s;
+    position: relative;
+}
+
+.commentItem:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.commentAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-surface-2);
+    border: 1.5px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.avatarImg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatarInitial {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-primary-light);
+    text-transform: uppercase;
+}
+
+.commentBody {
+    flex: 1;
+    min-width: 0;
+}
+
+.commentMeta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.commentAuthor {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.roleBadge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--color-primary-light);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    letter-spacing: 0.04em;
+}
+
+.commentTime {
+    font-size: 0.75rem;
+    color: var(--color-text-subtle);
+    margin-left: auto;
+}
+
+.commentText {
+    font-size: 0.875rem;
+    color: var(--color-text-subtle);
+    line-height: 1.55;
+    word-break: break-word;
+    margin: 0;
+}
+
+/* ── Delete Button ────────────────────────────── */
+.deleteCommentBtn {
+    background: none;
+    border: none;
+    color: var(--color-text-subtle);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 2px;
+}
+
+.commentItem:hover .deleteCommentBtn {
+    opacity: 1;
+}
+
+.deleteCommentBtn:hover {
+    color: var(--color-error);
+    background: var(--color-error-bg);
+}
+
+.deleteCommentBtn:disabled {
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.miniSpinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(248, 113, 113, 0.3);
+    border-top-color: var(--color-error);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* ── Empty State ─────────────────────────────── */
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+}
+
+.empty p {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    margin: 0;
+}
+
+/* ── Load More ────────────────────────────────── */
+.loadMoreBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    background: none;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    margin: 0 auto;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+
+.loadMoreBtn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary-light);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+/* ── Keyframes ────────────────────────────────── */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInToast {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive: Mobile-first (375px+) ─────────── */
+@media (max-width: 480px) {
+    .form {
+        gap: var(--space-2);
+    }
+
+    .formAvatar {
+        width: 30px;
+        height: 30px;
+    }
+
+    .submitBtn {
+        padding: 8px 14px;
+        font-size: 0.8rem;
+    }
+
+    .commentMeta {
+        gap: var(--space-1);
+    }
+
+    .commentTime {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .deleteCommentBtn {
+        opacity: 1;
+    }
+}

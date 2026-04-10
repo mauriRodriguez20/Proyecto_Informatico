@@ -129,4 +129,25 @@ export const publicationService = {
             body: JSON.stringify({ content }),
         });
     },
+
+    /**
+     * DELETE /api/publications/:id/comments/:commentId
+     * Elimina un comentario (solo el autor o un administrador).
+     */
+    async deleteComment(publicationId: string, commentId: string): Promise<void> {
+        return apiRequest<void>(BASE_URL_MS02, `/api/publications/${publicationId}/comments/${commentId}`, {
+            method: 'DELETE',
+        });
+    },
+
+    /**
+     * POST /api/publications/:id/rate
+     * Califica una publicación (1-5 estrellas).
+     */
+    async rate(id: string, rating: number): Promise<{ averageRating: number; totalRatings: number }> {
+        return apiRequest<{ averageRating: number; totalRatings: number }>(BASE_URL_MS02, `/api/publications/${id}/rate`, {
+            method: 'POST',
+            body: JSON.stringify({ rating }),
+        });
+    },
 };

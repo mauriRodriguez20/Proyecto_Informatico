@@ -6,6 +6,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { questionsService, Question, Answer } from '@/services/questions.service';
 import { useAuth } from '@/hooks/useAuth';
 import AnswerCard from '@/components/dashboard/AnswerCard';
+import CommentsSection from '@/components/dashboard/CommentsSection';
 import styles from './QuestionDetail.module.css';
 
 export default function QuestionDetailPage() {
@@ -120,6 +121,14 @@ export default function QuestionDetailPage() {
                             <pre><code>{question.codeBlock}</code></pre>
                         </div>
                     )}
+
+                    <div style={{ marginTop: 'var(--space-8)' }}>
+                        <CommentsSection
+                            id={question.id}
+                            type="QUESTION"
+                            comments={[]} // Backend doesn't return them yet, so empty list
+                        />
+                    </div>
                 </article>
 
                 <section>

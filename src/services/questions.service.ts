@@ -113,4 +113,17 @@ export const questionsService = {
             body: JSON.stringify(data),
         });
     },
+
+    async addComment(questionId: string, content: string) {
+        return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ content }),
+        });
+    },
+
+    async deleteComment(questionId: string, commentId: string) {
+        return apiRequest<void>(BASE_URL_MS03, `/api/questions/${questionId}/comments/${commentId}`, {
+            method: 'DELETE',
+        });
+    },
 };

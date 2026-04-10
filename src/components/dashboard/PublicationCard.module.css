@@ -44,10 +44,31 @@
     object-fit: cover;
 }
 
+.authorNameRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
 .authorName {
     font-size: 1rem;
     font-weight: 700;
     color: var(--color-text);
+}
+
+.authorAvgRating {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-warning);
+    background: rgba(251, 191, 36, 0.1);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .meta {
@@ -143,7 +164,22 @@
 
 .stats {
     display: flex;
-    gap: var(--space-4);
+    gap: var(--space-6);
+    align-items: center;
+}
+
+.ratingWrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.statLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .statBtn {
@@ -160,6 +196,10 @@
 }
 
 .statBtn:hover {
+    color: var(--color-primary);
+}
+
+.statBtnActive {
     color: var(--color-primary);
 }
 
@@ -304,6 +344,7 @@
     from {
         transform: rotate(0deg);
     }
+
     to {
         transform: rotate(360deg);
     }
@@ -391,6 +432,11 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }

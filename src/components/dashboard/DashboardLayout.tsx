@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import UserMenu from './UserMenu';
+import NotificationCenter from './NotificationCenter';
 import styles from './DashboardLayout.module.css';
 
 interface DashboardLayoutProps {
@@ -68,7 +69,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className={styles.content}>
                 <header className={styles.header}>
-                    <UserMenu />
+                    <div className={styles.headerActions}>
+                        {/* <NotificationCenter /> */}
+                        <UserMenu />
+                    </div>
                 </header>
 
                 <main className={styles.main}>
