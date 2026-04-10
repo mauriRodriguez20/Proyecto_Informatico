@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
-const PUBLIC_PREFIX_ROUTES = ["/api/users/register", "/api/users/login"];
+const PUBLIC_PREFIX_ROUTES = [
+  "/api/users/register",
+  "/api/users/login",
+  "/api/users/forgot-password",
+];
 
 function isPublicRoute(req: NextRequest): boolean {
   const { pathname } = req.nextUrl;

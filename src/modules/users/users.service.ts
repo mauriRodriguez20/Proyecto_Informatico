@@ -2,6 +2,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
+  ChangePasswordInput,
+  ForgotPasswordInput,
   LoginInput,
   RateUserInput,
   RegisterInput,
@@ -393,4 +395,58 @@ export async function rateUser(
 
     return { avgRating, totalRatings };
   });
+}
+
+export async function sendPasswordResetEmail(
+  input: ForgotPasswordInput
+): Promise<void> {
+  const email = normalizeEmail(input.email);
+  const supabase = await createSupabaseServerClient();
+
+  // Supabase envía el email con un link de recuperación.
+  // redirectTo debe apuntar a la página /reset-password del Frontend.
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.FRONTEND_URL ?? "http://localhost:3000"}/reset-password`,
+  });
+  // Siempre retorna sin error aunque el email no exista (seguridad: no revelar si existe).
+}
+
+export async function changeUserPassword(
+  userId: string,
+  _bearerToken: string,
+  input: ChangePasswordInput
+): Promise<void> {
+  // 1. Obtener el email del usuario desde Prisma.
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (!user) throw new Error("USER_NOT_FOUND");
+
+  // 2. Verificar la contraseña actual re-autenticando con Supabase.
+  const supabase = await createSupabaseServerClient();
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: input.currentPassword,
+  });
+  if (signInError || !signInData.session?.access_token) {
+    throw new Error("INVALID_CURRENT_PASSWORD");
+  }
+
+  // 3. Actualizar la contraseña usando el access_token fresco del paso 2.
+  //    Se usa la REST API de Supabase directamente para evitar problemas
+  //    de persistencia de sesión en el contexto de servidor SSR.
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/user`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${signInData.session.access_token}`,
+      },
+      body: JSON.stringify({ password: input.newPassword }),
+    }
+  );
+  if (!response.ok) throw new Error("PASSWORD_UPDATE_FAILED");
 }
