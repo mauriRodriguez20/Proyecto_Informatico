@@ -1,15 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import PublicationCreate from '@/components/dashboard/PublicationCreate';
 import PublicationFeed from '@/components/dashboard/PublicationFeed';
+import QuestionCreate from '@/components/dashboard/QuestionCreate';
+import QuestionsFeed from '@/components/dashboard/QuestionsFeed';
 
 export default function DashboardPage() {
     const { user, isLoading } = useAuth();
     const router = useRouter();
+    const [activeTab, setActiveTab] = useState<'community' | 'questions'>('community');
 
     useEffect(() => {
         if (!isLoading && !user) {
@@ -37,9 +40,50 @@ export default function DashboardPage() {
                     </p>
                 </header>
 
-                <PublicationCreate />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+                    {activeTab === 'community' ? (
+                        <PublicationCreate />
+                    ) : (
+                        <QuestionCreate onSuccess={() => { }} />
+                    )}
 
-                <PublicationFeed />
+                    <div style={{ borderBottom: '1px solid var(--color-border)', display: 'flex', gap: 'var(--space-8)' }}>
+                        <button
+                            onClick={() => setActiveTab('community')}
+                            style={{
+                                padding: '12px 4px',
+                                background: 'none',
+                                border: 'none',
+                                borderBottom: activeTab === 'community' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                                color: activeTab === 'community' ? 'var(--color-text)' : 'var(--color-text-muted)',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '1.1rem',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Latest Feed
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('questions')}
+                            style={{
+                                padding: '12px 4px',
+                                background: 'none',
+                                border: 'none',
+                                borderBottom: activeTab === 'questions' ? '2px solid var(--color-primary)' : '2px solid transparent',
+                                color: activeTab === 'questions' ? 'var(--color-text)' : 'var(--color-text-muted)',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontSize: '1.1rem',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Q&A Forum
+                        </button>
+                    </div>
+
+                    {activeTab === 'community' ? <PublicationFeed /> : <QuestionsFeed />}
+                </div>
             </div>
         </DashboardLayout>
     );

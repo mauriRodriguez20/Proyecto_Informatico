@@ -4,6 +4,7 @@
 
 export const BASE_URL_MS01 = process.env.NEXT_PUBLIC_API_URL_MS01 || '';
 export const BASE_URL_MS02 = process.env.NEXT_PUBLIC_API_URL_MS02 || '';
+export const BASE_URL_MS03 = process.env.NEXT_PUBLIC_API_URL_MS03 || '';
 
 /** Read the stored JWT and build an Authorization header */
 export function getAuthHeader(): Record<string, string> {
@@ -30,8 +31,16 @@ export async function apiRequest<T>(
     });
 
     if (!response.ok) {
-        const body = await response.json().catch(() => ({ message: 'Request failed' }));
-        throw new Error(body.message || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+            const body = await response.json();
+            // MS03 returns { error, details }
+            // MS01/MS02 might return { message }
+            errorMessage = body.details || body.error || body.message || errorMessage;
+        } catch (e) {
+            // Not JSON or other error
+        }
+        throw new Error(errorMessage);
     }
 
     // 204 No Content — return undefined cast as T

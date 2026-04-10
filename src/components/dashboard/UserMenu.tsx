@@ -34,12 +34,25 @@ export default function UserMenu() {
                         {user.avatarUrl ? (
                             <img src={user.avatarUrl} alt={user.username} className={styles.avatarImg} />
                         ) : (
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                <circle cx="12" cy="7" r="4" />
-                            </svg>
+                            <div className={styles.avatarPlaceholder}>
+                                {(user.username?.[0] || 'U').toUpperCase()}
+                            </div>
                         )}
                     </div>
+                </span>
+                <span className={styles.triggerInfo}>
+                    <span className={styles.triggerName}>{user.username}</span>
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                        width={14}
+                        height={14}
+                        className={styles.chevron}
+                    >
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
                 </span>
             </button>
 

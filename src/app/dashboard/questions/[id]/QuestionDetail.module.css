@@ -1,0 +1,201 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+}
+
+.backLink {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: transform var(--transition-fast);
+    width: max-content;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.backLink:hover {
+    transform: translateX(-4px);
+}
+
+.questionSection {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-8);
+    box-shadow: var(--shadow-xl);
+    position: relative;
+    overflow: hidden;
+}
+
+.questionSection::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-primary), transparent);
+}
+
+.tagline {
+    display: flex;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+}
+
+.area {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+}
+
+.title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--color-text);
+    line-height: 1.2;
+    margin-bottom: var(--space-6);
+}
+
+.authorCard {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background: var(--color-surface-2);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-8);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: fit-content;
+}
+
+.authorName {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.authorDate {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.description {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--color-text-subtle);
+    white-space: pre-wrap;
+    margin-bottom: var(--space-8);
+}
+
+.answersHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-6);
+}
+
+.answerCount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.answerList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.answerForm {
+    margin-top: var(--space-12);
+    padding: var(--space-10);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow-xl);
+}
+
+.formTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: var(--space-8);
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 200px;
+    gap: var(--space-4);
+}
+
+.textarea,
+.input {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    color: var(--color-text);
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.textarea:focus,
+.input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--color-surface-3);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.submitBtn {
+    align-self: flex-start;
+    background: var(--color-primary);
+    color: white;
+    padding: 12px 32px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-md);
+}
+
+.submitBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    filter: brightness(1.1);
+}
+
+.submitBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.codeBlock {
+    background: var(--color-bg);
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    overflow-x: auto;
+    margin-bottom: var(--space-8);
+}
+
+.codeLang {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    margin-bottom: var(--space-2);
+    text-transform: uppercase;
+    font-weight: 700;
+}
