@@ -11,7 +11,11 @@ export const technologyService = {
      * Devuelve el catálogo completo de tecnologías disponibles.
      */
     async list(): Promise<Technology[]> {
-        return apiRequest<Technology[]>(BASE_URL_MS01, '/api/technologies');
+        const response = await apiRequest<{ data: Technology[]; total: number; limit: number }>(
+            BASE_URL_MS01,
+            '/api/technologies?limit=50'
+        );
+        return response.data;
     },
 
     /**

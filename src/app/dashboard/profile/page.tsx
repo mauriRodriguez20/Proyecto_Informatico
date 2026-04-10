@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { userService } from '@/services/user.service';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
+import ChangePasswordModal from '@/components/dashboard/ChangePasswordModal';
 import styles from './Profile.module.css';
 
 export default function RedesignedProfilePage() {
@@ -11,6 +12,7 @@ export default function RedesignedProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [showChangePassword, setShowChangePassword] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -307,11 +309,19 @@ export default function RedesignedProfilePage() {
                         <div className={styles.infoCard}>
                             <h3>Security</h3>
                             <p>Manage your account security and password settings.</p>
-                            <button className={styles.secondaryBtn}>Change Password</button>
+                            <button
+                                className={styles.secondaryBtn}
+                                onClick={() => setShowChangePassword(true)}
+                            >
+                                Change Password
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
+            {showChangePassword && (
+                <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+            )}
         </DashboardLayout>
     );
 }

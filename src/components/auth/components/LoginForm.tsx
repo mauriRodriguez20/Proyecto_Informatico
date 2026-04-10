@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './LoginForm.module.css';
 import FormInput from './FormInput';
-import { useAuth } from '@/hooks/useAuth';
 import SocialAuth from './SocialAuth';
+import ForgotPasswordView from './ForgotPasswordView';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LoginFormProps {
     onSuccess?: () => void;
@@ -23,6 +24,7 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<Errors>({});
     const [shakeFields, setShakeFields] = useState<string[]>([]);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     const validate = (): boolean => {
         const errs: Errors = {};
@@ -51,6 +53,10 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             setErrors({ general: err.message || 'Invalid credentials. Please try again.' });
         }
     };
+
+    if (showForgotPassword) {
+        return <ForgotPasswordView onBack={() => setShowForgotPassword(false)} />;
+    }
 
     return (
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -88,7 +94,11 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             />
 
             <div className={styles.forgot}>
-                <button type="button" className={styles.forgotLink} onClick={() => alert('Forgot password flow — TODO')}>
+                <button
+                    type="button"
+                    className={styles.forgotLink}
+                    onClick={() => setShowForgotPassword(true)}
+                >
                     Forgot password?
                 </button>
             </div>

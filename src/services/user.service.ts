@@ -80,4 +80,26 @@ export const userService = {
             body: JSON.stringify({ rating }),
         });
     },
+
+    /**
+     * POST /api/users/forgot-password
+     * Solicita un email de recuperación de contraseña. No requiere auth.
+     */
+    async forgotPassword(email: string): Promise<void> {
+        return apiRequest<void>(BASE_URL_MS01, '/api/users/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email }),
+        });
+    },
+
+    /**
+     * POST /api/users/change-password
+     * Cambia la contraseña del usuario autenticado. Requiere Bearer token.
+     */
+    async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+        return apiRequest<void>(BASE_URL_MS01, '/api/users/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ currentPassword, newPassword }),
+        });
+    },
 };
