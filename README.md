@@ -75,6 +75,7 @@ npm install
 npx prisma generate
 npx prisma db push
 npm run dev
+# Se ejecutará en el puerto 3004 para no causar conflicto con los otros microservicios
 ```
 
 Validacion tecnica:
