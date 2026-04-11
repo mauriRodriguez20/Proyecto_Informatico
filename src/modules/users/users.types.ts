@@ -21,7 +21,12 @@ export interface UserDto {
   createdAt: Date;
 }
 
-export interface UserWithTechnologiesDto extends UserDto {
+export interface UserStatsDto {
+  commentsCount: number;
+  solutionsCount: number;
+}
+
+export interface UserWithTechnologiesDto extends UserDto, UserStatsDto {
   technologies: TechnologyDto[];
 }
 
