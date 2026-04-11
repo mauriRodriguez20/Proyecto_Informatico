@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-helpers";
-import {
-  uuidParamSchema,
-  voteAnswerSchema,
-} from "@/modules/questions/questions.schema";
-import { voteAnswer } from "@/modules/questions/questions.service";
-import type { ErrorResponse } from "@/modules/questions/questions.types";
+import { uuidParamSchema } from "@/modules/interactions/interactions.schema";
+import { rateAnswer } from "@/modules/interactions/interactions.service";
+import type { ErrorResponse } from "@/modules/interactions/interactions.types";
+import { z } from "zod";
+
+const rateAnswerLegacySchema = z.object({
+  rating: z
+    .number({
+      required_error: "La calificacion es obligatoria.",
+      invalid_type_error: "La calificacion debe ser numerica.",
+    })
+    .int("La calificacion debe ser un numero entero.")
+    .min(1, "La calificacion minima es 1 estrella.")
+    .max(5, "La calificacion maxima es 5 estrellas."),
+});
 
 function getFirstFieldError(details: Record<string, string[] | undefined>): string | undefined {
   const first = Object.values(details).find((messages) => messages && messages.length > 0);
@@ -14,47 +23,38 @@ function getFirstFieldError(details: Record<string, string[] | undefined>): stri
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; answerId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId, errorResponse } = await withAuth(req);
     if (errorResponse) return errorResponse;
 
-    const { id, answerId } = await params;
-
-    const questionIdValidation = uuidParamSchema.safeParse(id);
-    const answerIdValidation = uuidParamSchema.safeParse(answerId);
-
-    if (!questionIdValidation.success || !answerIdValidation.success) {
-      const response: ErrorResponse = {
-        error: "Los identificadores de pregunta o respuesta no son validos.",
-      };
+    const { id } = await params;
+    const idValidation = uuidParamSchema.safeParse(id);
+    if (!idValidation.success) {
+      const response: ErrorResponse = { error: "El id de la respuesta no es valido." };
       return NextResponse.json(response, { status: 400 });
     }
 
     const body = await req.json();
-    const validation = voteAnswerSchema.safeParse(body);
-
+    const validation = rateAnswerLegacySchema.safeParse(body);
     if (!validation.success) {
       const fieldErrors = validation.error.flatten().fieldErrors;
       const response: ErrorResponse = {
-        error: "Datos de voto invalidos.",
+        error: "Datos de calificacion invalidos.",
         details: getFirstFieldError(fieldErrors),
       };
       return NextResponse.json(response, { status: 400 });
     }
 
-    const result = await voteAnswer(
-      questionIdValidation.data,
-      answerIdValidation.data,
-      userId,
-      validation.data.value
-    );
+    const result = await rateAnswer(idValidation.data, userId, {
+      score: validation.data.rating,
+    });
 
     return NextResponse.json(
       {
-        message: "Voto registrado exitosamente.",
-        voteScore: result.voteScore,
+        averageRating: result.avgRating,
+        totalRatings: result.totalRatings,
       },
       { status: 200 }
     );
@@ -66,14 +66,14 @@ export async function POST(
       return NextResponse.json(response, { status: 404 });
     }
 
-    if (err.message === "SELF_VOTE_NOT_ALLOWED") {
+    if (err.message === "SELF_RATING_NOT_ALLOWED") {
       const response: ErrorResponse = {
-        error: "No puedes votar tu propia respuesta.",
+        error: "No puedes calificar tu propio contenido.",
       };
       return NextResponse.json(response, { status: 403 });
     }
 
-    console.error("[POST /api/questions/:id/answers/:answerId/vote]", err.message);
+    console.error("[POST /api/answers/:id/rate]", err.message);
     const response: ErrorResponse = { error: "Error interno del servidor." };
     return NextResponse.json(response, { status: 500 });
   }
