@@ -5,6 +5,7 @@
 export const BASE_URL_MS01 = process.env.NEXT_PUBLIC_API_URL_MS01 || '';
 export const BASE_URL_MS02 = process.env.NEXT_PUBLIC_API_URL_MS02 || '';
 export const BASE_URL_MS03 = process.env.NEXT_PUBLIC_API_URL_MS03 || '';
+export const BASE_URL_MS04 = process.env.NEXT_PUBLIC_API_URL_MS04 || '';
 
 /** Read the stored JWT and build an Authorization header */
 export function getAuthHeader(): Record<string, string> {
