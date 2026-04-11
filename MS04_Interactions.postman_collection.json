@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "e4f8f9f3-5ca3-4cbf-bd95-4fd0e8f6f2b1",
+    "name": "MS04 Interactions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Comentarios Publicacion - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}/comments?page=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "publications",
+            "{{publicationId}}",
+            "comments"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Comentarios Publicacion - Crear",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Buen aporte, esta solucion me sirvio bastante.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}/comments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "publications",
+            "{{publicationId}}",
+            "comments"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Comentarios Pregunta - Listar",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/{{questionId}}/comments?page=1&limit=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "questions",
+            "{{questionId}}",
+            "comments"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Comentarios Pregunta - Crear",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Podrias compartir mas contexto del error?\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/questions/{{questionId}}/comments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "questions",
+            "{{questionId}}",
+            "comments"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Publicacion - Ver Puntuacion",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}/ratings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "publications",
+            "{{publicationId}}",
+            "ratings"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Publicacion - Calificar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"score\": 5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/publications/{{publicationId}}/ratings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "publications",
+            "{{publicationId}}",
+            "ratings"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Respuesta - Ver Puntuacion",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/answers/{{answerId}}/ratings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "answers",
+            "{{answerId}}",
+            "ratings"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Respuesta - Calificar",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"score\": 4\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/answers/{{answerId}}/ratings",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "answers",
+            "{{answerId}}",
+            "ratings"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3004"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "publicationId",
+      "value": ""
+    },
+    {
+      "key": "questionId",
+      "value": ""
+    },
+    {
+      "key": "answerId",
+      "value": ""
+    }
+  ]
+}

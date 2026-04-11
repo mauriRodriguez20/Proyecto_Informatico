@@ -1,185 +1,83 @@
 -- ============================================================
--- Microservicio 03: Questions & Answers
--- Schema: questions
+-- Microservicio 04: Interactions & Reputation
+-- Schema: interactions
 -- RLS (Row Level Security) Policies
 -- ============================================================
 
--- Enable RLS on tables
-ALTER TABLE "questions"."questions" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "questions"."question_tags" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "questions"."answers" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "questions"."answer_votes" ENABLE ROW LEVEL SECURITY;
+-- Enable RLS
+ALTER TABLE "interactions"."comments" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "interactions"."ratings" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "interactions"."user_reputations" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "interactions"."user_stats" ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they already exist (idempotent script)
-DROP POLICY IF EXISTS "questions_public_read" ON "questions"."questions";
-DROP POLICY IF EXISTS "question_tags_public_read" ON "questions"."question_tags";
-DROP POLICY IF EXISTS "answers_public_read" ON "questions"."answers";
-DROP POLICY IF EXISTS "answer_votes_public_read" ON "questions"."answer_votes";
+-- Drop existing policies for idempotency
+DROP POLICY IF EXISTS "comments_public_read" ON "interactions"."comments";
+DROP POLICY IF EXISTS "comments_authenticated_insert" ON "interactions"."comments";
+DROP POLICY IF EXISTS "comments_owner_delete" ON "interactions"."comments";
 
-DROP POLICY IF EXISTS "questions_authenticated_insert" ON "questions"."questions";
-DROP POLICY IF EXISTS "question_tags_owner_insert" ON "questions"."question_tags";
-DROP POLICY IF EXISTS "answers_authenticated_insert" ON "questions"."answers";
-DROP POLICY IF EXISTS "answer_votes_authenticated_insert" ON "questions"."answer_votes";
+DROP POLICY IF EXISTS "ratings_public_read" ON "interactions"."ratings";
+DROP POLICY IF EXISTS "ratings_authenticated_upsert" ON "interactions"."ratings";
 
-DROP POLICY IF EXISTS "questions_owner_update" ON "questions"."questions";
-DROP POLICY IF EXISTS "question_tags_owner_update" ON "questions"."question_tags";
-DROP POLICY IF EXISTS "answers_author_or_question_owner_update" ON "questions"."answers";
-DROP POLICY IF EXISTS "answer_votes_voter_update" ON "questions"."answer_votes";
+DROP POLICY IF EXISTS "user_reputations_public_read" ON "interactions"."user_reputations";
+DROP POLICY IF EXISTS "user_reputations_service_write" ON "interactions"."user_reputations";
 
-DROP POLICY IF EXISTS "questions_owner_delete" ON "questions"."questions";
-DROP POLICY IF EXISTS "question_tags_owner_delete" ON "questions"."question_tags";
-DROP POLICY IF EXISTS "answers_author_or_question_owner_delete" ON "questions"."answers";
-DROP POLICY IF EXISTS "answer_votes_voter_delete" ON "questions"."answer_votes";
+DROP POLICY IF EXISTS "user_stats_public_read" ON "interactions"."user_stats";
+DROP POLICY IF EXISTS "user_stats_service_write" ON "interactions"."user_stats";
 
--- Public read
-CREATE POLICY "questions_public_read"
-ON "questions"."questions"
+-- Public read access
+CREATE POLICY "comments_public_read"
+ON "interactions"."comments"
 FOR SELECT
 USING (true);
 
-CREATE POLICY "question_tags_public_read"
-ON "questions"."question_tags"
+CREATE POLICY "ratings_public_read"
+ON "interactions"."ratings"
 FOR SELECT
 USING (true);
 
-CREATE POLICY "answers_public_read"
-ON "questions"."answers"
+CREATE POLICY "user_reputations_public_read"
+ON "interactions"."user_reputations"
 FOR SELECT
 USING (true);
 
-CREATE POLICY "answer_votes_public_read"
-ON "questions"."answer_votes"
+CREATE POLICY "user_stats_public_read"
+ON "interactions"."user_stats"
 FOR SELECT
 USING (true);
 
--- Authenticated inserts
-CREATE POLICY "questions_authenticated_insert"
-ON "questions"."questions"
+-- Authenticated write access for comments
+CREATE POLICY "comments_authenticated_insert"
+ON "interactions"."comments"
 FOR INSERT
 TO authenticated
 WITH CHECK (auth.uid()::text = "authorId");
 
-CREATE POLICY "question_tags_owner_insert"
-ON "questions"."question_tags"
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-);
-
-CREATE POLICY "answers_authenticated_insert"
-ON "questions"."answers"
-FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid()::text = "authorId");
-
-CREATE POLICY "answer_votes_authenticated_insert"
-ON "questions"."answer_votes"
-FOR INSERT
-TO authenticated
-WITH CHECK (auth.uid()::text = "voterId");
-
--- Updates
-CREATE POLICY "questions_owner_update"
-ON "questions"."questions"
-FOR UPDATE
-TO authenticated
-USING (auth.uid()::text = "authorId")
-WITH CHECK (auth.uid()::text = "authorId");
-
-CREATE POLICY "question_tags_owner_update"
-ON "questions"."question_tags"
-FOR UPDATE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-)
-WITH CHECK (
-  EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-);
-
-CREATE POLICY "answers_author_or_question_owner_update"
-ON "questions"."answers"
-FOR UPDATE
-TO authenticated
-USING (
-  auth.uid()::text = "authorId"
-  OR EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-)
-WITH CHECK (
-  auth.uid()::text = "authorId"
-  OR EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-);
-
-CREATE POLICY "answer_votes_voter_update"
-ON "questions"."answer_votes"
-FOR UPDATE
-TO authenticated
-USING (auth.uid()::text = "voterId")
-WITH CHECK (auth.uid()::text = "voterId");
-
--- Deletes
-CREATE POLICY "questions_owner_delete"
-ON "questions"."questions"
+CREATE POLICY "comments_owner_delete"
+ON "interactions"."comments"
 FOR DELETE
 TO authenticated
 USING (auth.uid()::text = "authorId");
 
-CREATE POLICY "question_tags_owner_delete"
-ON "questions"."question_tags"
-FOR DELETE
+-- Authenticated write access for ratings (upsert done as INSERT/UPDATE)
+CREATE POLICY "ratings_authenticated_upsert"
+ON "interactions"."ratings"
+FOR ALL
 TO authenticated
-USING (
-  EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-);
+USING (auth.uid()::text = "raterId")
+WITH CHECK (auth.uid()::text = "raterId");
 
-CREATE POLICY "answers_author_or_question_owner_delete"
-ON "questions"."answers"
-FOR DELETE
+-- Service-level writes for denormalized reputation/stats tables.
+-- Enforced at API level in this microservice.
+CREATE POLICY "user_reputations_service_write"
+ON "interactions"."user_reputations"
+FOR ALL
 TO authenticated
-USING (
-  auth.uid()::text = "authorId"
-  OR EXISTS (
-    SELECT 1
-    FROM "questions"."questions" q
-    WHERE q."id" = "questionId"
-      AND q."authorId" = auth.uid()::text
-  )
-);
+USING (true)
+WITH CHECK (true);
 
-CREATE POLICY "answer_votes_voter_delete"
-ON "questions"."answer_votes"
-FOR DELETE
+CREATE POLICY "user_stats_service_write"
+ON "interactions"."user_stats"
+FOR ALL
 TO authenticated
-USING (auth.uid()::text = "voterId");
-
+USING (true)
+WITH CHECK (true);

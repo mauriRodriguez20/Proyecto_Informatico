@@ -1,14 +1,3 @@
-// ============================================================
-// Developer's Portal - Microservicio 03 (Questions & Answers)
-// Schema: questions
-// Arquitectura: Multi-Schema (comparte el proyecto Supabase con MS-01/MS-02)
-//
-// REGLAS:
-// - Todos los modelos deben incluir @@schema("questions")
-// - No se duplica el modelo User aqui.
-//   Datos de autor y catalogo de tecnologias se consultan via API de MS-01.
-// ============================================================
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
@@ -18,84 +7,80 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["questions"]
+  schemas   = ["interactions"]
 }
 
-enum Area {
-  FRONTEND
-  BACKEND
+enum CommentTargetType {
+  PUBLICATION
+  QUESTION
 
-  @@schema("questions")
+  @@schema("interactions")
 }
 
-model Question {
+enum RatingTargetType {
+  PUBLICATION
+  ANSWER
+
+  @@schema("interactions")
+}
+
+model Comment {
   id          String   @id @default(uuid())
   authorId    String
-  area        Area
-  title       String
-  description String
-  codeBlock   String?
-  language    String?
+  targetType  CommentTargetType
+  targetId    String
+  content     String   @db.VarChar(500)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  tags    QuestionTag[]
-  answers Answer[]
-
-  @@index([authorId])
+  @@index([targetType, targetId])
   @@index([createdAt])
-  @@map("questions")
-  @@schema("questions")
-}
-
-model QuestionTag {
-  questionId   String
-  technologyId String // UUID del catalogo de MS-01
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@id([questionId, technologyId])
-  @@index([technologyId])
-  @@map("question_tags")
-  @@schema("questions")
-}
-
-model Answer {
-  id         String   @id @default(uuid())
-  questionId String
-  authorId   String
-  content    String
-  codeBlock  String?
-  language   String?
-  isAccepted Boolean  @default(false)
-  voteScore  Int      @default(0) // suma neta de votos (+1 / -1)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  votes    AnswerVote[]
-
-  @@index([questionId])
   @@index([authorId])
-  @@index([questionId, isAccepted])
-  @@index([voteScore])
-  @@map("answers")
-  @@schema("questions")
+  @@map("comments")
+  @@schema("interactions")
 }
 
-model AnswerVote {
-  id        String   @id @default(uuid())
-  answerId  String
-  voterId   String
-  value     Int // permitido por validacion: 1 o -1
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Rating {
+  id             String           @id @default(uuid())
+  raterId        String
+  targetAuthorId String
+  targetType     RatingTargetType
+  targetId       String
+  score          Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  answer Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  @@unique([raterId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([targetAuthorId])
+  @@index([score])
+  @@map("ratings")
+  @@schema("interactions")
+}
 
-  @@unique([answerId, voterId])
-  @@index([voterId])
-  @@index([answerId, value])
-  @@map("answer_votes")
-  @@schema("questions")
+model UserReputation {
+  userId       String   @id
+  avgRating    Float    @default(0)
+  totalRatings Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([avgRating])
+  @@map("user_reputations")
+  @@schema("interactions")
+}
+
+model UserStats {
+  userId             String   @id
+  publicationsCount  Int      @default(0)
+  questionsCount     Int      @default(0)
+  answersCount       Int      @default(0)
+  avgRating          Float    @default(0)
+  totalRatings       Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([avgRating])
+  @@map("user_stats")
+  @@schema("interactions")
 }
