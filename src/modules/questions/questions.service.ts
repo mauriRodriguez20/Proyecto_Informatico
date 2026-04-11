@@ -95,6 +95,27 @@ async function attachAuthors(question: QuestionItem): Promise<QuestionItem> {
   };
 }
 
+async function attachListAuthors(
+  questions: QuestionListItem[]
+): Promise<QuestionListItem[]> {
+  if (questions.length === 0) return questions;
+
+  const authorIds = Array.from(new Set(questions.map((question) => question.authorId)));
+  const authorEntries = await Promise.all(
+    authorIds.map(async (authorId) => {
+      const author = await fetchAuthor(authorId);
+      return [authorId, author] as const;
+    })
+  );
+
+  const authorsMap = new Map(authorEntries);
+
+  return questions.map((question) => ({
+    ...question,
+    author: authorsMap.get(question.authorId) ?? null,
+  }));
+}
+
 export async function createQuestion(
   authorId: string,
   data: CreateQuestionInput
@@ -165,7 +186,7 @@ export async function listQuestions(
     prisma.question.count({ where }),
   ]);
 
-  const data: QuestionListItem[] = questions.map((question) => ({
+  const dataBase: QuestionListItem[] = questions.map((question) => ({
     id: question.id,
     authorId: question.authorId,
     area: question.area,
@@ -179,6 +200,8 @@ export async function listQuestions(
     answerCount: question._count.answers,
     acceptedAnswerId: question.answers[0]?.id ?? null,
   }));
+
+  const data = await attachListAuthors(dataBase);
 
   return {
     data,
@@ -389,22 +412,49 @@ export async function voteAnswer(
   if (answer.authorId === voterId) throw new Error("SELF_VOTE_NOT_ALLOWED");
 
   return prisma.$transaction(async (tx) => {
-    await tx.answerVote.upsert({
+    const existingVote = await tx.answerVote.findUnique({
       where: {
         answerId_voterId: {
           answerId,
           voterId,
         },
       },
-      create: {
-        answerId,
-        voterId,
-        value,
-      },
-      update: {
-        value,
+      select: {
+        value: true,
       },
     });
+
+    if (!existingVote) {
+      await tx.answerVote.create({
+        data: {
+          answerId,
+          voterId,
+          value,
+        },
+      });
+    } else if (existingVote.value === value) {
+      // Toggle same vote off (state goes back to 0 for that user)
+      await tx.answerVote.delete({
+        where: {
+          answerId_voterId: {
+            answerId,
+            voterId,
+          },
+        },
+      });
+    } else {
+      await tx.answerVote.update({
+        where: {
+          answerId_voterId: {
+            answerId,
+            voterId,
+          },
+        },
+        data: {
+          value,
+        },
+      });
+    }
 
     const aggregate = await tx.answerVote.aggregate({
       where: { answerId },
