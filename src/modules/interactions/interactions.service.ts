@@ -23,7 +23,12 @@ interface UserRoleRow {
   role: string | null;
 }
 
+interface ExistsRow {
+  exists: boolean;
+}
+
 const ADMIN_ROLES = new Set(["ADMIN", "SUPER_ADMIN"]);
+let publicationCommentsCountColumnExists: boolean | null = null;
 
 function sanitizePlainText(value: string): string {
   return value.replace(/\u0000/g, "").trim();
@@ -170,8 +175,51 @@ async function listCommentsByTarget(
     total,
     page,
     limit,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.max(1, Math.ceil(total / limit)),
   };
+}
+
+async function refreshPublicationCommentsCount(
+  tx: TxClient,
+  publicationId: string
+): Promise<void> {
+  if (publicationCommentsCountColumnExists === null) {
+    try {
+      const rows = await tx.$queryRaw<ExistsRow[]>(
+        Prisma.sql`
+          SELECT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'publications'
+              AND table_name = 'publications'
+              AND column_name = 'commentsCount'
+          ) AS "exists"
+        `
+      );
+      publicationCommentsCountColumnExists = rows[0]?.exists ?? false;
+    } catch {
+      publicationCommentsCountColumnExists = false;
+    }
+  }
+
+  if (!publicationCommentsCountColumnExists) return;
+
+  const totalComments = await tx.comment.count({
+    where: {
+      targetType: CommentTargetType.PUBLICATION,
+      targetId: publicationId,
+    },
+  });
+
+  await tx.$executeRaw(
+    Prisma.sql`
+      UPDATE "publications"."publications"
+      SET
+        "commentsCount" = ${totalComments},
+        "updatedAt" = NOW()
+      WHERE "id" = ${publicationId}
+    `
+  );
 }
 
 async function createCommentByTarget(
@@ -328,7 +376,20 @@ export async function createPublicationComment(
   data: CreateCommentInput
 ) {
   await assertPublicationExists(publicationId);
-  return createCommentByTarget(CommentTargetType.PUBLICATION, publicationId, authorId, data);
+
+  return prisma.$transaction(async (tx) => {
+    const comment = await tx.comment.create({
+      data: {
+        authorId,
+        targetType: CommentTargetType.PUBLICATION,
+        targetId: publicationId,
+        content: sanitizePlainText(data.content),
+      },
+    });
+
+    await refreshPublicationCommentsCount(tx, publicationId);
+    return comment;
+  });
 }
 
 export async function deletePublicationComment(
@@ -337,12 +398,33 @@ export async function deletePublicationComment(
   requesterId: string
 ): Promise<void> {
   await assertPublicationExists(publicationId);
-  await deleteCommentByTarget(
-    CommentTargetType.PUBLICATION,
-    publicationId,
-    commentId,
-    requesterId
-  );
+
+  await prisma.$transaction(async (tx) => {
+    const comment = await tx.comment.findFirst({
+      where: {
+        id: commentId,
+        targetType: CommentTargetType.PUBLICATION,
+        targetId: publicationId,
+      },
+      select: {
+        id: true,
+        authorId: true,
+      },
+    });
+
+    if (!comment) throw new Error("COMMENT_NOT_FOUND");
+
+    if (comment.authorId !== requesterId) {
+      const isAdmin = await isAdminUser(requesterId);
+      if (!isAdmin) throw new Error("FORBIDDEN_COMMENT_DELETE");
+    }
+
+    await tx.comment.delete({
+      where: { id: comment.id },
+    });
+
+    await refreshPublicationCommentsCount(tx, publicationId);
+  });
 }
 
 export async function listQuestionComments(
