@@ -10,3 +10,9 @@ prisma/migrations/
 .DS_Store
 *.pem
 npm-debug.log*
+.vscode/
+.idea/
+.vercel/
+dist/
+logs/
+*.log
