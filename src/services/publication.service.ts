@@ -3,7 +3,7 @@
  * Service for all Backend 2 /api/publications/* endpoints.
  * Uses the shared apiRequest helper from @/lib/api.
  */
-import { apiRequest, BASE_URL_MS02 } from '@/lib/api';
+import { apiRequest, BASE_URL_MS02, BASE_URL_MS04 } from '@/lib/api';
 import {
     Publication,
     PublicationFilters,
@@ -124,7 +124,7 @@ export const publicationService = {
      * Agrega un comentario a una publicación (autenticado).
      */
     async addComment(publicationId: string, content: string): Promise<Comment> {
-        return apiRequest<Comment>(BASE_URL_MS02, `/api/publications/${publicationId}/comments`, {
+        return apiRequest<Comment>(BASE_URL_MS04, `/api/publications/${publicationId}/comments`, {
             method: 'POST',
             body: JSON.stringify({ content }),
         });
@@ -135,7 +135,7 @@ export const publicationService = {
      * Elimina un comentario (solo el autor o un administrador).
      */
     async deleteComment(publicationId: string, commentId: string): Promise<void> {
-        return apiRequest<void>(BASE_URL_MS02, `/api/publications/${publicationId}/comments/${commentId}`, {
+        return apiRequest<void>(BASE_URL_MS04, `/api/publications/${publicationId}/comments/${commentId}`, {
             method: 'DELETE',
         });
     },
@@ -145,7 +145,7 @@ export const publicationService = {
      * Califica una publicación (1-5 estrellas).
      */
     async rate(id: string, rating: number): Promise<{ averageRating: number; totalRatings: number }> {
-        return apiRequest<{ averageRating: number; totalRatings: number }>(BASE_URL_MS02, `/api/publications/${id}/rate`, {
+        return apiRequest<{ averageRating: number; totalRatings: number }>(BASE_URL_MS04, `/api/publications/${id}/rate`, {
             method: 'POST',
             body: JSON.stringify({ rating }),
         });

@@ -1,4 +1,4 @@
-import { apiRequest, BASE_URL_MS03 } from "@/lib/api";
+import { apiRequest, BASE_URL_MS03, BASE_URL_MS04 } from "@/lib/api";
 
 export interface Question {
     id: string;
@@ -115,14 +115,14 @@ export const questionsService = {
     },
 
     async addComment(questionId: string, content: string) {
-        return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/comments`, {
+        return apiRequest<any>(BASE_URL_MS04, `/api/questions/${questionId}/comments`, {
             method: 'POST',
             body: JSON.stringify({ content }),
         });
     },
 
     async deleteComment(questionId: string, commentId: string) {
-        return apiRequest<void>(BASE_URL_MS03, `/api/questions/${questionId}/comments/${commentId}`, {
+        return apiRequest<void>(BASE_URL_MS04, `/api/questions/${questionId}/comments/${commentId}`, {
             method: 'DELETE',
         });
     },
