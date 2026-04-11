@@ -1,4 +1,4 @@
-# Developer's Portal - Microservicio 04 (Interactions & Reputation)
+# Microservicio 04 (Interactions & Reputation)
 
 MS-04 implementa la EPI-004: Interacciones y Sistema de Reputacion.
 
