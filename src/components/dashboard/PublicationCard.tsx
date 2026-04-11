@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Publication } from '@/types/publications.types';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
@@ -19,7 +19,6 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
     const { user } = useAuth();
     const [showComments, setShowComments] = useState(false);
     const [commentsCount, setCommentsCount] = useState(publication.commentsCount);
-    const [comments] = useState(publication.comments ?? []);
 
     // Rating state
     const [authorRating, setAuthorRating] = useState(publication.author?.rating || 0);
@@ -39,6 +38,14 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
             publication.description !== snippetCode
             ? publication.description
             : '';
+
+    useEffect(() => {
+        setCommentsCount(publication.commentsCount ?? 0);
+    }, [publication.commentsCount]);
+
+    useEffect(() => {
+        setAuthorRating(publication.author?.rating || 0);
+    }, [publication.author?.rating, publication.id]);
 
     const handleUpdate = async () => {
         if (!editedTitle.trim() || !editedContent.trim()) return;
@@ -200,9 +207,8 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
                 <CommentsSection
                     id={publication.id}
                     type="PUBLICATION"
-                    comments={comments}
-                    onCommentAdded={() => setCommentsCount(prev => prev + 1)}
-                    onCommentDeleted={() => setCommentsCount(prev => prev - 1)}
+                    comments={publication.comments ?? []}
+                    onCommentsSynced={(total) => setCommentsCount(total)}
                 />
             )}
         </article>

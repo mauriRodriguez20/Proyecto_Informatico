@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
 import { questionsService } from '@/services/questions.service';
@@ -8,6 +8,8 @@ import { Comment } from '@/types/publications.types';
 import styles from './CommentsSection.module.css';
 
 const MAX_CHARS = 500;
+const COMMENTS_FETCH_LIMIT = 50;
+const COMMENTS_POLL_MS = 10000;
 
 interface CommentsSectionProps {
     id: string;
@@ -15,6 +17,23 @@ interface CommentsSectionProps {
     comments: Comment[];
     onCommentAdded?: () => void;
     onCommentDeleted?: (commentId: string) => void;
+    onCommentsSynced?: (totalComments: number) => void;
+}
+
+function areCommentsDifferent(prev: Comment[], next: Comment[]): boolean {
+    if (prev.length !== next.length) return true;
+
+    for (let i = 0; i < prev.length; i += 1) {
+        const prevComment = prev[i];
+        const nextComment = next[i];
+
+        if (!nextComment) return true;
+        if (prevComment.id !== nextComment.id) return true;
+        if (prevComment.createdAt !== nextComment.createdAt) return true;
+        if (prevComment.content !== nextComment.content) return true;
+    }
+
+    return false;
 }
 
 function CommentAvatar({ username, avatarUrl }: { username: string; avatarUrl?: string }) {
@@ -115,20 +134,27 @@ export default function CommentsSection({
     comments: initialComments,
     onCommentAdded,
     onCommentDeleted,
+    onCommentsSynced,
 }: CommentsSectionProps) {
+    const initialCommentsCount = Array.isArray(initialComments) ? initialComments.length : 0;
     const { user } = useAuth();
     const [comments, setComments] = useState<Comment[]>(initialComments);
     const [content, setContent] = useState('');
     const [isPosting, setIsPosting] = useState(false);
+    const [isSyncingComments, setIsSyncingComments] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
     const [showAll, setShowAll] = useState(false);
+    const hasCompletedInitialSyncRef = useRef<boolean>(initialCommentsCount > 0);
+    const onCommentsSyncedRef = useRef<typeof onCommentsSynced>(onCommentsSynced);
+    const commentsRef = useRef<Comment[]>(initialComments);
+    const lastSyncedCountRef = useRef<number>(initialCommentsCount);
 
     const service = type === 'PUBLICATION' ? publicationService : questionsService;
 
     const PREVIEW_COUNT = 3;
     const sortedComments = [...comments].sort(
-        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     const visibleComments = showAll ? sortedComments : sortedComments.slice(0, PREVIEW_COUNT);
     const hasMore = sortedComments.length > PREVIEW_COUNT;
@@ -143,24 +169,80 @@ export default function CommentsSection({
         setTimeout(() => setToast(null), 4000);
     }, []);
 
+    useEffect(() => {
+        onCommentsSyncedRef.current = onCommentsSynced;
+    }, [onCommentsSynced]);
+
+    useEffect(() => {
+        commentsRef.current = comments;
+    }, [comments]);
+
+    const syncComments = useCallback(async (showLoading = false) => {
+        const getComments = (service as any).getComments as
+            | ((id: string, page?: number, limit?: number) => Promise<Comment[]>)
+            | undefined;
+
+        if (typeof getComments !== 'function') return;
+
+        if (showLoading) {
+            setIsSyncingComments(true);
+        }
+
+        try {
+            const fetchedComments = await getComments(resourceId, 1, COMMENTS_FETCH_LIMIT);
+            if (Array.isArray(fetchedComments)) {
+                if (areCommentsDifferent(commentsRef.current, fetchedComments)) {
+                    setComments(fetchedComments);
+                    commentsRef.current = fetchedComments;
+                }
+
+                if (lastSyncedCountRef.current !== fetchedComments.length) {
+                    lastSyncedCountRef.current = fetchedComments.length;
+                    onCommentsSyncedRef.current?.(fetchedComments.length);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to sync comments:', error);
+        } finally {
+            hasCompletedInitialSyncRef.current = true;
+            if (showLoading) {
+                setIsSyncingComments(false);
+            }
+        }
+    }, [resourceId, service]);
+
+    useEffect(() => {
+        setComments(initialCommentsCount > 0 ? initialComments : []);
+        commentsRef.current = initialCommentsCount > 0 ? initialComments : [];
+        hasCompletedInitialSyncRef.current = initialCommentsCount > 0;
+        lastSyncedCountRef.current = initialCommentsCount;
+        setIsSyncingComments(false);
+        setShowAll(false);
+        onCommentsSyncedRef.current?.(initialCommentsCount);
+    }, [resourceId, type, initialCommentsCount]);
+
+    useEffect(() => {
+        const needsInitialLoading = !hasCompletedInitialSyncRef.current && commentsRef.current.length === 0;
+        void syncComments(needsInitialLoading);
+    }, [resourceId, type, syncComments]);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            void syncComments(false);
+        }, COMMENTS_POLL_MS);
+
+        return () => window.clearInterval(intervalId);
+    }, [syncComments]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!content.trim() || isPosting || isOverLimit || !user) return;
 
         setIsPosting(true);
         try {
-            const newComment = await (service as any).addComment(resourceId, content.trim());
-            const commentWithAuthor: Comment = {
-                ...newComment,
-                author: {
-                    id: user.id,
-                    username: user.username || user.email || 'You',
-                    avatarUrl: user.avatarUrl,
-                    role: user.role,
-                },
-            };
-            setComments(prev => [...prev, commentWithAuthor]);
+            await (service as any).addComment(resourceId, content.trim());
             setContent('');
+            await syncComments(false);
             showToast('Comment added successfully!', 'success');
             onCommentAdded?.();
         } catch (err: unknown) {
@@ -175,7 +257,7 @@ export default function CommentsSection({
         setDeletingId(commentId);
         try {
             await (service as any).deleteComment(resourceId, commentId);
-            setComments(prev => prev.filter(c => c.id !== commentId));
+            await syncComments(false);
             showToast('Comment deleted.', 'success');
             onCommentDeleted?.(commentId);
         } catch (err: unknown) {
@@ -277,6 +359,10 @@ export default function CommentsSection({
                             isDeleting={deletingId === comment.id}
                         />
                     ))
+                ) : isSyncingComments ? (
+                    <div className={styles.empty}>
+                        <p>Loading comments...</p>
+                    </div>
                 ) : (
                     <div className={styles.empty}>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} width={32} height={32} opacity={0.3}>

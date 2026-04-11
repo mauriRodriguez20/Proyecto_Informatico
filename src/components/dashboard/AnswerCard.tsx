@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Answer, questionsService } from '@/services/questions.service';
 import { useAuth } from '@/hooks/useAuth';
 import styles from './AnswerCard.module.css';
@@ -15,6 +15,7 @@ interface AnswerCardProps {
 export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpdate }: AnswerCardProps) {
     const { user } = useAuth();
     const [isVoting, setIsVoting] = useState(false);
+    const [voteScore, setVoteScore] = useState(answer.voteScore);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [editContent, setEditContent] = useState(answer.content);
@@ -23,11 +24,19 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
 
     const isOwner = user?.id === answer.authorId;
 
+    useEffect(() => {
+        setVoteScore(answer.voteScore);
+    }, [answer.voteScore, answer.id]);
+
     const handleVote = async (value: 1 | -1) => {
+        if (isVoting) return;
         setIsVoting(true);
         try {
-            await questionsService.voteAnswer(questionId, answer.id, value);
-            onUpdate();
+            const result = await questionsService.voteAnswer(questionId, answer.id, value);
+            if (typeof result?.voteScore === 'number') {
+                setVoteScore(result.voteScore);
+            }
+            void onUpdate();
         } catch (err: any) {
             alert(err.message || 'Error voting');
         } finally {
@@ -76,6 +85,7 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
             <div className={styles.voteColumn}>
                 <button
                     className={styles.voteBtn}
+                    type="button"
                     onClick={() => handleVote(1)}
                     disabled={isVoting}
                     title="Correct answer"
@@ -84,9 +94,10 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                         <path d="M18 15l-6-6-6 6" />
                     </svg>
                 </button>
-                <span className={styles.voteCount}>{answer.voteScore}</span>
+                <span className={styles.voteCount}>{voteScore}</span>
                 <button
                     className={styles.voteBtn}
+                    type="button"
                     onClick={() => handleVote(-1)}
                     disabled={isVoting}
                     title="Incorrect or unhelpful"

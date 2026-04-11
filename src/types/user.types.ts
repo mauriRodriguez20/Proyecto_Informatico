@@ -33,6 +33,8 @@ export interface UserProfile {
     avatarUrl?: string | null;
     avgRating?: number;
     totalRatings?: number;
+    commentsCount?: number;
+    solutionsCount?: number;
     technologies?: Technology[] | UserTechnology[];
     createdAt?: string | Date;
     updatedAt?: string | Date;

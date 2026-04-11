@@ -46,6 +46,11 @@ export interface QuestionsResponse {
     totalPages: number;
 }
 
+export interface VoteAnswerResponse {
+    message?: string;
+    voteScore: number;
+}
+
 export const questionsService = {
     async getQuestions(page = 1, unanswered = false): Promise<QuestionsResponse> {
         const params = new URLSearchParams();
@@ -54,14 +59,20 @@ export const questionsService = {
 
         return apiRequest<QuestionsResponse>(
             BASE_URL_MS03,
-            `/api/questions?${params.toString()}`
+            `/api/questions?${params.toString()}`,
+            {
+                cache: "no-store",
+            }
         );
     },
 
     async getQuestionById(id: string): Promise<{ question: Question & { answers: Answer[] } }> {
         return apiRequest<{ question: Question & { answers: Answer[] } }>(
             BASE_URL_MS03,
-            `/api/questions/${id}`
+            `/api/questions/${id}`,
+            {
+                cache: "no-store",
+            }
         );
     },
 
@@ -90,8 +101,8 @@ export const questionsService = {
         });
     },
 
-    async voteAnswer(questionId: string, answerId: string, value: 1 | -1) {
-        return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}/vote`, {
+    async voteAnswer(questionId: string, answerId: string, value: 1 | -1): Promise<VoteAnswerResponse> {
+        return apiRequest<VoteAnswerResponse>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}/vote`, {
             method: "POST",
             body: JSON.stringify({ value }),
         });
@@ -119,6 +130,19 @@ export const questionsService = {
             method: 'POST',
             body: JSON.stringify({ content }),
         });
+    },
+
+    async getComments(questionId: string, page = 1, limit = 50) {
+        const response = await apiRequest<{ data?: any[] } | any[]>(
+            BASE_URL_MS04,
+            `/api/questions/${questionId}/comments?page=${page}&limit=${limit}`,
+            {
+                cache: "no-store",
+            }
+        );
+
+        if (Array.isArray(response)) return response;
+        return Array.isArray(response.data) ? response.data : [];
     },
 
     async deleteComment(questionId: string, commentId: string) {
