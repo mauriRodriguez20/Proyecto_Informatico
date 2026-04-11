@@ -15,6 +15,7 @@ import type {
   RegisterResult,
   TechnologyDto,
   UserDto,
+  UserStatsDto,
   UserWithTechnologiesDto,
 } from "./users.types";
 
@@ -60,10 +61,13 @@ function mapUser(user: Prisma.UserGetPayload<{ select: typeof USER_SELECT }>): U
 }
 
 function mapUserWithTechnologies(
-  user: Prisma.UserGetPayload<{ select: typeof USER_WITH_TECHNOLOGIES_SELECT }>
+  user: Prisma.UserGetPayload<{ select: typeof USER_WITH_TECHNOLOGIES_SELECT }>,
+  stats?: UserStatsDto
 ): UserWithTechnologiesDto {
   return {
     ...mapUser(user),
+    commentsCount: stats?.commentsCount ?? 0,
+    solutionsCount: stats?.solutionsCount ?? 0,
     technologies: user.technologies.map(
       (relation): TechnologyDto => ({
         id: relation.technology.id,
@@ -72,6 +76,37 @@ function mapUserWithTechnologies(
       })
     ),
   };
+}
+
+async function getUserStats(userId: string): Promise<UserStatsDto> {
+  const fallback: UserStatsDto = {
+    commentsCount: 0,
+    solutionsCount: 0,
+  };
+
+  try {
+    const [commentRows, solutionRows] = await Promise.all([
+      prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "count"
+        FROM "interactions"."comments"
+        WHERE "authorId" = ${userId}
+      `),
+      prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS "count"
+        FROM "publications"."publications"
+        WHERE "authorId" = ${userId}
+          AND "type" = CAST('ERROR_SOLUTION' AS "publications"."PublicationType")
+      `),
+    ]);
+
+    return {
+      commentsCount: commentRows[0]?.count ?? 0,
+      solutionsCount: solutionRows[0]?.count ?? 0,
+    };
+  } catch (error) {
+    console.warn("[getUserStats] Falling back to zeros:", error);
+    return fallback;
+  }
 }
 
 async function getLockSeconds(email: string): Promise<number> {
@@ -260,7 +295,8 @@ export async function getUserById(id: string): Promise<UserWithTechnologiesDto |
   });
 
   if (!user) return null;
-  return mapUserWithTechnologies(user);
+  const stats = await getUserStats(id);
+  return mapUserWithTechnologies(user, stats);
 }
 
 export async function updateUserProfile(
