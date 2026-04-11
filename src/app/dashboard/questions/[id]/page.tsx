@@ -37,6 +37,16 @@ export default function QuestionDetailPage() {
         loadData();
     }, [id]);
 
+    useEffect(() => {
+        if (!id) return;
+
+        const intervalId = window.setInterval(() => {
+            void loadData();
+        }, 12000);
+
+        return () => window.clearInterval(intervalId);
+    }, [id]);
+
     const handleAnswerSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!id || !answerContent.trim()) return;
@@ -104,8 +114,18 @@ export default function QuestionDetailPage() {
                     <h1 className={styles.title}>{question.title}</h1>
 
                     <div className={styles.authorCard}>
-                        <div className="avatar" style={{ width: 40, height: 40 }}>
-                            {question.author?.avatarUrl ? <img src={question.author.avatarUrl} alt="" /> : <span>{question.author?.username?.[0].toUpperCase() || 'U'}</span>}
+                        <div className={styles.authorAvatar}>
+                            {question.author?.avatarUrl ? (
+                                <img
+                                    src={question.author.avatarUrl}
+                                    alt={question.author?.username || 'Author avatar'}
+                                    className={styles.authorAvatarImg}
+                                />
+                            ) : (
+                                <span className={styles.authorAvatarFallback}>
+                                    {question.author?.username?.[0].toUpperCase() || 'U'}
+                                </span>
+                            )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <span className={styles.authorName}>{question.author?.username || 'Anonymous'}</span>

@@ -2,14 +2,20 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { userService } from '@/services/user.service';
 import styles from './UserMenu.module.css';
 
 export default function UserMenu() {
     const router = useRouter();
     const { user, logout } = useAuth();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [stats, setStats] = useState({
+        rating: 0,
+        comments: 0,
+        solutions: 0,
+    });
 
     const handleLogout = async () => {
         if (isLoggingOut) return;
@@ -23,6 +29,35 @@ export default function UserMenu() {
             setIsLoggingOut(false);
         }
     };
+
+    useEffect(() => {
+        if (!user) return;
+
+        let isCancelled = false;
+
+        setStats(prev => ({
+            ...prev,
+            rating: Number(user.rating ?? 0),
+        }));
+
+        userService
+            .getProfile(user.id)
+            .then((profile) => {
+                if (isCancelled) return;
+                setStats({
+                    rating: Number(profile.avgRating ?? user.rating ?? 0),
+                    comments: Number(profile.commentsCount ?? 0),
+                    solutions: Number(profile.solutionsCount ?? 0),
+                });
+            })
+            .catch(() => {
+                // Keep previous stats if profile refresh fails.
+            });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [user?.id, user?.rating]);
 
     if (!user) return null;
 
@@ -76,15 +111,15 @@ export default function UserMenu() {
 
                 <div className={styles.stats}>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>{Number(user.rating || 5).toFixed(1)}</span>
+                        <span className={styles.statValue}>{Number(stats.rating).toFixed(1)}</span>
                         <span className={styles.statLabel}>Rating</span>
                     </div>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>12</span>
+                        <span className={styles.statValue}>{stats.comments}</span>
                         <span className={styles.statLabel}>Comments</span>
                     </div>
                     <div className={styles.statItem}>
-                        <span className={styles.statValue}>4</span>
+                        <span className={styles.statValue}>{stats.solutions}</span>
                         <span className={styles.statLabel}>Solutions</span>
                     </div>
                 </div>
