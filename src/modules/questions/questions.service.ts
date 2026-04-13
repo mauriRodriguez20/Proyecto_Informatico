@@ -47,6 +47,7 @@ async function fetchAuthor(userId: string): Promise<AuthorSnapshot | null> {
       username: user.username ?? "usuario",
       avatarUrl: user.avatarUrl ?? null,
       role: user.role ?? "UNKNOWN",
+      avgRating: typeof user.avgRating === "number" ? user.avgRating : undefined,
     };
   } catch {
     return null;

@@ -7,6 +7,7 @@ export interface AuthorSnapshot {
   username: string;
   avatarUrl: string | null;
   role: string;
+  avgRating?: number;
 }
 
 export interface QuestionTagItem {
