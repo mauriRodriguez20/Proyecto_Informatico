@@ -150,6 +150,7 @@ async function fetchAuthor(authorId: string): Promise<AuthorSnapshot | null> {
       name: username,
       avatarUrl: data.user?.avatarUrl ?? null,
       role: data.user?.role ?? "UNKNOWN",
+      avgRating: typeof data.user?.avgRating === "number" ? data.user.avgRating : undefined,
     };
   } catch (error) {
     console.error(`[fetchAuthor] Error connecting to MS-01 for author ${authorId}:`, error);

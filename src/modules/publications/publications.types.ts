@@ -31,6 +31,7 @@ export interface AuthorSnapshot {
   name: string;
   avatarUrl: string | null;
   role: string;
+  avgRating?: number;
 }
 
 export interface CreatePublicationInput {
