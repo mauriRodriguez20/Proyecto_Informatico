@@ -66,10 +66,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
 
     const handleRate = async (rating: number) => {
         try {
-            const result = await publicationService.rate(publication.id, rating);
-            // Updating the author's rating in real-time for this card
-            // In a real app, this might come from a global state or websocket
-            setAuthorRating(result.averageRating);
+            await publicationService.rate(publication.id, rating);
         } catch (err: any) {
             alert(err.message || 'Error submitting rating');
         }
