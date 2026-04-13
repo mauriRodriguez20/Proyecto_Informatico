@@ -21,7 +21,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
     const [commentsCount, setCommentsCount] = useState(publication.commentsCount);
 
     // Rating state
-    const [authorRating, setAuthorRating] = useState(publication.author?.rating || 0);
+    const [authorRating, setAuthorRating] = useState(publication.author?.avgRating ?? null);
 
     // Edit state
     const [isEditing, setIsEditing] = useState(false);
@@ -44,8 +44,8 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
     }, [publication.commentsCount]);
 
     useEffect(() => {
-        setAuthorRating(publication.author?.rating || 0);
-    }, [publication.author?.rating, publication.id]);
+        setAuthorRating(publication.author?.avgRating ?? null);
+    }, [publication.author?.avgRating, publication.id]);
 
     const handleUpdate = async () => {
         if (!editedTitle.trim() || !editedContent.trim()) return;
@@ -93,7 +93,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
                                 <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
                                     <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                                 </svg>
-                                {Number(authorRating).toFixed(1)}
+                                {authorRating !== null ? Number(authorRating).toFixed(1) : '—'}
                             </span>
                         </div>
                         <span className={styles.meta}>{publication.author?.role || 'Developer'} • {date}</span>

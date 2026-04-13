@@ -56,6 +56,21 @@
     margin: 0;
 }
 
+.authorNameRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.authorAvgRating {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #f5a623;
+}
+
 .meta {
     font-size: 0.75rem;
     color: var(--color-text-muted);

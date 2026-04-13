@@ -17,6 +17,7 @@ export interface Question {
         username: string;
         avatarUrl: string | null;
         role: string;
+        avgRating?: number;
     };
 }
 
@@ -35,6 +36,7 @@ export interface Answer {
         username: string;
         avatarUrl: string | null;
         role: string;
+        avgRating?: number;
     };
 }
 
