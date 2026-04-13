@@ -84,7 +84,7 @@ export default function QuestionDetailPage() {
             <DashboardLayout>
                 <div style={{ textAlign: 'center', padding: 'var(--space-12)' }}>
                     <h2>Question not found</h2>
-                    <button onClick={() => router.back()} className={styles.backLink}>Go Back</button>
+                    <button onClick={() => router.push('/dashboard/questions')} className={styles.backLink}>Go Back</button>
                 </div>
             </DashboardLayout>
         );
@@ -96,7 +96,7 @@ export default function QuestionDetailPage() {
     return (
         <DashboardLayout>
             <div className={styles.page}>
-                <button onClick={() => router.back()} className={styles.backLink}>
+                <button onClick={() => router.push('/dashboard/questions')} className={styles.backLink}>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} width={20} height={20}>
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
