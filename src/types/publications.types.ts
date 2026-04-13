@@ -5,7 +5,7 @@ export interface Author {
     id: string;
     username: string;
     avatarUrl?: string;
-    rating?: number;
+    avgRating?: number;
     role?: string;
 }
 

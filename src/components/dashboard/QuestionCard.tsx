@@ -33,7 +33,15 @@ export default function QuestionCard({ question }: QuestionCardProps) {
                         )}
                     </div>
                     <div>
-                        <h4 className={styles.authorName}>{author?.username || `User ${question.authorId.slice(0, 5)}`}</h4>
+                        <div className={styles.authorNameRow}>
+                            <h4 className={styles.authorName}>{author?.username || `User ${question.authorId.slice(0, 5)}`}</h4>
+                            <span className={styles.authorAvgRating}>
+                                <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                </svg>
+                                {typeof author?.avgRating === 'number' ? author.avgRating.toFixed(1) : '—'}
+                            </span>
+                        </div>
                         <span className={styles.meta}>{author?.role || 'Developer'} • {date}</span>
                     </div>
                 </div>
