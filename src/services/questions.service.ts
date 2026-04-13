@@ -125,6 +125,12 @@ export const questionsService = {
         });
     },
 
+    async deleteAnswer(questionId: string, answerId: string): Promise<void> {
+        return apiRequest<void>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}`, {
+            method: 'DELETE',
+        });
+    },
+
     async addComment(questionId: string, content: string) {
         return apiRequest<any>(BASE_URL_MS04, `/api/questions/${questionId}/comments`, {
             method: 'POST',
