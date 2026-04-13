@@ -14,6 +14,8 @@ export default function RedesignedProfilePage() {
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [avgRating, setAvgRating] = useState<number | null>(null);
+    const [totalRatings, setTotalRatings] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -47,6 +49,12 @@ export default function RedesignedProfilePage() {
                     description: profile.description || '',
                     avatarUrl: profile.avatarUrl || prev.avatarUrl || '',
                 }));
+                if (typeof profile.avgRating === 'number') {
+                    setAvgRating(profile.avgRating);
+                }
+                if (typeof profile.totalRatings === 'number') {
+                    setTotalRatings(profile.totalRatings);
+                }
             })
             .catch(() => {
                 // Keep local fallback values if profile fetch fails.
@@ -297,7 +305,11 @@ export default function RedesignedProfilePage() {
                             <div className={styles.statList}>
                                 <div className={styles.statItem}>
                                     <span>Rating</span>
-                                    <strong>{user.rating || 5.0}</strong>
+                                    <strong>
+                                        {totalRatings === 0
+                                            ? 'Sin calificaciones'
+                                            : `${avgRating?.toFixed(1) ?? '—'} / 5`}
+                                    </strong>
                                 </div>
                                 <div className={styles.statItem}>
                                     <span>Publications</span>

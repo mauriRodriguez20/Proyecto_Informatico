@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { userService } from '@/services/user.service';
 import Link from 'next/link';
 import styles from './Profile.module.css';
 
@@ -13,6 +14,8 @@ export default function StandaloneProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isExiting, setIsExiting] = useState(false);
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
+    const [avgRating, setAvgRating] = useState<number | null>(null);
+    const [totalRatings, setTotalRatings] = useState(0);
 
     const [formData, setFormData] = useState({
         username: '',
@@ -29,6 +32,11 @@ export default function StandaloneProfilePage() {
                 email: user.email,
                 role: user.role
             });
+
+            userService.getProfile(user.id).then((profile) => {
+                if (typeof profile.avgRating === 'number') setAvgRating(profile.avgRating);
+                if (typeof profile.totalRatings === 'number') setTotalRatings(profile.totalRatings);
+            }).catch(() => {});
         }
     }, [user, isLoading, router]);
 
@@ -149,8 +157,14 @@ export default function StandaloneProfilePage() {
 
                     <div className={styles.statsGrid}>
                         <div className={styles.statCard}>
-                            <span className={styles.statValue}>{user.rating || '5.0'}</span>
-                            <span className={styles.statLabel}>User Rating</span>
+                            <span className={styles.statValue}>
+                                {totalRatings === 0
+                                    ? '—'
+                                    : avgRating?.toFixed(1) ?? '—'}
+                            </span>
+                            <span className={styles.statLabel}>
+                                {totalRatings === 0 ? 'Sin calificaciones' : 'User Rating'}
+                            </span>
                         </div>
                         <div className={styles.statCard}>
                             <span className={styles.statValue}>12</span>
