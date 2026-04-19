@@ -36,6 +36,14 @@ export default function PublicationFeed({ authorId }: PublicationFeedProps) {
         loadPublications();
     }, [filters]);
 
+    useEffect(() => {
+        setFilters(prev => ({
+            ...prev,
+            authorId,
+            page: 1,
+        }));
+    }, [authorId]);
+
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this publication?')) return;
         try {

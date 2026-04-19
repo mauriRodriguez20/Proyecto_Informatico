@@ -31,6 +31,18 @@
     gap: var(--space-3);
 }
 
+.authorLink {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    text-decoration: none;
+    color: inherit;
+}
+
+.authorLink:hover .authorName {
+    color: var(--color-primary);
+}
+
 .avatar {
     width: 40px;
     height: 40px;

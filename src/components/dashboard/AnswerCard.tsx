@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Answer, questionsService } from '@/services/questions.service';
 import { useAuth } from '@/hooks/useAuth';
 import styles from './AnswerCard.module.css';
@@ -66,7 +67,7 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
             await questionsService.updateAnswer(questionId, answer.id, {
                 content: editContent,
                 codeBlock: editCode || null,
-                language: editCode ? (editLang || 'text') : null
+                language: editCode ? editLang || 'text' : null,
             });
             setIsEditing(false);
             onUpdate();
@@ -127,7 +128,7 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                         <textarea
                             className={styles.editTextarea}
                             value={editContent}
-                            onChange={e => setEditContent(e.target.value)}
+                            onChange={(e) => setEditContent(e.target.value)}
                             required
                             placeholder="Clarify your answer..."
                         />
@@ -135,13 +136,13 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                             <textarea
                                 className={`${styles.editTextarea} ${styles.codeArea}`}
                                 value={editCode}
-                                onChange={e => setEditCode(e.target.value)}
+                                onChange={(e) => setEditCode(e.target.value)}
                                 placeholder="Edit code block (optional)..."
                             />
                             <input
                                 className={styles.editInput}
                                 value={editLang}
-                                onChange={e => setEditLang(e.target.value)}
+                                onChange={(e) => setEditLang(e.target.value)}
                                 placeholder="Language"
                                 required={editCode.length > 0}
                             />
@@ -176,19 +177,21 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                 )}
 
                 <div className={styles.footer}>
-                    <div className={styles.authorInfo}>
-                        <div className={styles.avatar}>
-                            {answer.author?.avatarUrl ? (
-                                <img src={answer.author.avatarUrl} alt={answer.author.username} />
-                            ) : (
-                                <span>{answer.author?.username?.[0].toUpperCase() || 'U'}</span>
-                            )}
+                    <Link href={`/dashboard/profile/${answer.authorId}`} className={styles.authorInfoLink}>
+                        <div className={styles.authorInfo}>
+                            <div className={styles.avatar}>
+                                {answer.author?.avatarUrl ? (
+                                    <img src={answer.author.avatarUrl} alt={answer.author.username} />
+                                ) : (
+                                    <span>{answer.author?.username?.[0].toUpperCase() || 'U'}</span>
+                                )}
+                            </div>
+                            <div className={styles.authorMeta}>
+                                <span className={styles.authorName}>{answer.author?.username || 'Anonymous'}</span>
+                                <span className={styles.date}>answered {formatDate(answer.createdAt)}</span>
+                            </div>
                         </div>
-                        <div className={styles.authorMeta}>
-                            <span className={styles.authorName}>{answer.author?.username || 'Anonymous'}</span>
-                            <span className={styles.date}>answered {formatDate(answer.createdAt)}</span>
-                        </div>
-                    </div>
+                    </Link>
 
                     <div className={styles.actions}>
                         {isOwner && !isEditing && (
@@ -207,3 +210,4 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
         </div>
     );
 }
+

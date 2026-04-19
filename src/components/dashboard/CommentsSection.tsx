@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
 import { questionsService } from '@/services/questions.service';
@@ -83,19 +84,37 @@ function CommentItem({
         hour: '2-digit',
         minute: '2-digit',
     });
+    const authorName = comment.author?.username || 'Anonymous';
+    const authorId = comment.author?.id;
+    const profileHref = authorId ? `/dashboard/profile/${authorId}` : null;
 
     return (
         <div className={styles.commentItem}>
             <div className={styles.commentAvatar}>
-                <CommentAvatar
-                    username={comment.author?.username || 'U'}
-                    avatarUrl={comment.author?.avatarUrl}
-                />
+                {profileHref ? (
+                    <Link href={profileHref} className={styles.commentAvatarLink}>
+                        <CommentAvatar
+                            username={comment.author?.username || 'U'}
+                            avatarUrl={comment.author?.avatarUrl}
+                        />
+                    </Link>
+                ) : (
+                    <CommentAvatar
+                        username={comment.author?.username || 'U'}
+                        avatarUrl={comment.author?.avatarUrl}
+                    />
+                )}
             </div>
             <div className={styles.commentBody}>
                 <div className={styles.commentMeta}>
                     <span className={styles.commentAuthor}>
-                        {comment.author?.username || 'Anonymous'}
+                        {profileHref ? (
+                            <Link href={profileHref} className={styles.commentAuthorLink}>
+                                {authorName}
+                            </Link>
+                        ) : (
+                            authorName
+                        )}
                     </span>
                     {comment.author?.role && comment.author.role !== 'USER' && (
                         <span className={styles.roleBadge}>{comment.author.role}</span>

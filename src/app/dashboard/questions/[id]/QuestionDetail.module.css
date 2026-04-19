@@ -76,6 +76,16 @@
     width: fit-content;
 }
 
+.authorCardLink {
+    text-decoration: none;
+    color: inherit;
+    width: fit-content;
+}
+
+.authorCardLink:hover .authorName {
+    color: var(--color-primary-light);
+}
+
 .authorAvatar {
     width: 40px;
     height: 40px;

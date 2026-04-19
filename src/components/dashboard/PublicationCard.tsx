@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Publication } from '@/types/publications.types';
 import { useAuth } from '@/hooks/useAuth';
 import { publicationService } from '@/services/publication.service';
@@ -31,11 +32,13 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
 
     const isOwner = user?.id === (publication.author?.id || publication.authorId);
     const date = new Date(publication.createdAt).toLocaleDateString();
+    const authorId = publication.author?.id || publication.authorId;
+    const authorName = publication.author?.username || `User ${publication.authorId.slice(0, 5)}`;
     const snippetCode = publication.codeBlock || publication.content;
     const snippetDescription =
         publication.type === 'CODE_SNIPPET' &&
-            publication.description &&
-            publication.description !== snippetCode
+        publication.description &&
+        publication.description !== snippetCode
             ? publication.description
             : '';
 
@@ -53,7 +56,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         try {
             const updated = await publicationService.update(publication.id, {
                 title: editedTitle,
-                content: editedContent
+                content: editedContent,
             });
             setIsEditing(false);
             onUpdate?.(updated);
@@ -76,25 +79,27 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         <article className={styles.card}>
             <header className={styles.header}>
                 <div className={styles.authorInfo}>
-                    <div className={styles.avatar}>
-                        {publication.author?.avatarUrl ? (
-                            <img src={publication.author.avatarUrl} alt={publication.author.username} />
-                        ) : (
-                            <span>{(publication.author?.username || 'U')[0].toUpperCase()}</span>
-                        )}
-                    </div>
-                    <div>
-                        <div className={styles.authorNameRow}>
-                            <h4 className={styles.authorName}>{publication.author?.username || `User ${publication.authorId.slice(0, 5)}`}</h4>
-                            <span className={styles.authorAvgRating}>
-                                <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
-                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                </svg>
-                                {authorRating !== null ? Number(authorRating).toFixed(1) : '—'}
-                            </span>
+                    <Link href={`/dashboard/profile/${authorId}`} className={styles.authorLink}>
+                        <div className={styles.avatar}>
+                            {publication.author?.avatarUrl ? (
+                                <img src={publication.author.avatarUrl} alt={authorName} />
+                            ) : (
+                                <span>{(publication.author?.username || 'U')[0].toUpperCase()}</span>
+                            )}
                         </div>
-                        <span className={styles.meta}>{publication.author?.role || 'Developer'} • {date}</span>
-                    </div>
+                        <div>
+                            <div className={styles.authorNameRow}>
+                                <h4 className={styles.authorName}>{authorName}</h4>
+                                <span className={styles.authorAvgRating}>
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
+                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                    </svg>
+                                    {authorRating !== null ? Number(authorRating).toFixed(1) : '-'}
+                                </span>
+                            </div>
+                            <span className={styles.meta}>{publication.author?.role || 'Developer'} - {date}</span>
+                        </div>
+                    </Link>
                 </div>
 
                 <div className={styles.tags}>
@@ -211,3 +216,4 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         </article>
     );
 }
+

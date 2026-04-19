@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { questionsService, Question, Answer } from '@/services/questions.service';
@@ -113,25 +114,27 @@ export default function QuestionDetailPage() {
 
                     <h1 className={styles.title}>{question.title}</h1>
 
-                    <div className={styles.authorCard}>
-                        <div className={styles.authorAvatar}>
-                            {question.author?.avatarUrl ? (
-                                <img
-                                    src={question.author.avatarUrl}
-                                    alt={question.author?.username || 'Author avatar'}
-                                    className={styles.authorAvatarImg}
-                                />
-                            ) : (
-                                <span className={styles.authorAvatarFallback}>
-                                    {question.author?.username?.[0].toUpperCase() || 'U'}
-                                </span>
-                            )}
+                    <Link href={`/dashboard/profile/${question.authorId}`} className={styles.authorCardLink}>
+                        <div className={styles.authorCard}>
+                            <div className={styles.authorAvatar}>
+                                {question.author?.avatarUrl ? (
+                                    <img
+                                        src={question.author.avatarUrl}
+                                        alt={question.author?.username || 'Author avatar'}
+                                        className={styles.authorAvatarImg}
+                                    />
+                                ) : (
+                                    <span className={styles.authorAvatarFallback}>
+                                        {question.author?.username?.[0].toUpperCase() || 'U'}
+                                    </span>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span className={styles.authorName}>{question.author?.username || 'Anonymous'}</span>
+                                <span className={styles.authorDate}>posted on {new Date(question.createdAt).toLocaleDateString()}</span>
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span className={styles.authorName}>{question.author?.username || 'Anonymous'}</span>
-                            <span className={styles.authorDate}>posted on {new Date(question.createdAt).toLocaleDateString()}</span>
-                        </div>
-                    </div>
+                    </Link>
 
                     <div className={styles.description}>{question.description}</div>
 

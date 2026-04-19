@@ -20,30 +20,33 @@ export default function QuestionCard({ question }: QuestionCardProps) {
 
     const author = question.author;
     const date = formatDate(question.createdAt);
+    const authorName = author?.username || `User ${question.authorId.slice(0, 5)}`;
 
     return (
         <article className={styles.card}>
             <header className={styles.header}>
                 <div className={styles.authorInfo}>
-                    <div className={styles.avatar}>
-                        {author?.avatarUrl ? (
-                            <img src={author.avatarUrl} alt={author.username} />
-                        ) : (
-                            <span>{(author?.username || 'U')[0].toUpperCase()}</span>
-                        )}
-                    </div>
-                    <div>
-                        <div className={styles.authorNameRow}>
-                            <h4 className={styles.authorName}>{author?.username || `User ${question.authorId.slice(0, 5)}`}</h4>
-                            <span className={styles.authorAvgRating}>
-                                <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
-                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                </svg>
-                                {typeof author?.avgRating === 'number' ? author.avgRating.toFixed(1) : '—'}
-                            </span>
+                    <Link href={`/dashboard/profile/${question.authorId}`} className={styles.authorLink}>
+                        <div className={styles.avatar}>
+                            {author?.avatarUrl ? (
+                                <img src={author.avatarUrl} alt={authorName} />
+                            ) : (
+                                <span>{(author?.username || 'U')[0].toUpperCase()}</span>
+                            )}
                         </div>
-                        <span className={styles.meta}>{author?.role || 'Developer'} • {date}</span>
-                    </div>
+                        <div>
+                            <div className={styles.authorNameRow}>
+                                <h4 className={styles.authorName}>{authorName}</h4>
+                                <span className={styles.authorAvgRating}>
+                                    <svg viewBox="0 0 24 24" fill="currentColor" width={10} height={10}>
+                                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                    </svg>
+                                    {typeof author?.avgRating === 'number' ? author.avgRating.toFixed(1) : '-'}
+                                </span>
+                            </div>
+                            <span className={styles.meta}>{author?.role || 'Developer'} - {date}</span>
+                        </div>
+                    </Link>
                 </div>
 
                 <div className={styles.tags}>
@@ -89,3 +92,4 @@ export default function QuestionCard({ question }: QuestionCardProps) {
         </article>
     );
 }
+

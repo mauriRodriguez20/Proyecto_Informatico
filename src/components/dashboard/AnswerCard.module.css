@@ -119,6 +119,15 @@
     gap: var(--space-3);
 }
 
+.authorInfoLink {
+    text-decoration: none;
+    color: inherit;
+}
+
+.authorInfoLink:hover .authorName {
+    color: var(--color-primary);
+}
+
 .avatar {
     width: 36px;
     height: 36px;
