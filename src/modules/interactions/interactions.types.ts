@@ -1,4 +1,10 @@
-import { CommentTargetType, RatingTargetType } from "@prisma/client";
+import {
+  CommentTargetType,
+  NotificationEntityType,
+  NotificationType,
+  Prisma,
+  RatingTargetType,
+} from "@prisma/client";
 
 export interface AuthorSnapshot {
   id: string;
@@ -57,6 +63,64 @@ export interface RatingSummary {
 
 export interface RateResult extends RatingSummary {
   userReputation: UserReputationSnapshot;
+}
+
+export interface UserStatsSnapshot {
+  userId: string;
+  publicationsCount: number;
+  questionsCount: number;
+  answersCount: number;
+  avgRating: number;
+  totalRatings: number;
+  label: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  entityType: NotificationEntityType;
+  entityId: string;
+  questionId: string | null;
+  title: string;
+  message: string;
+  isRead: boolean;
+  readAt: Date | null;
+  triggeredByUserId: string | null;
+  metadata: Prisma.JsonValue | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ListNotificationsQuery {
+  page: number;
+  limit: number;
+  unreadOnly: boolean;
+}
+
+export interface PaginatedNotificationsResponse {
+  data: NotificationItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  unreadCount: number;
+  hasUnread: boolean;
+  emptyMessage?: string;
+}
+
+export interface MarkReadResult {
+  notificationId: string;
+  isRead: boolean;
+  readAt: Date | null;
+}
+
+export interface MarkAllReadResult {
+  updatedCount: number;
+}
+
+export interface UnreadCountResult {
+  unreadCount: number;
 }
 
 export interface ErrorResponse {

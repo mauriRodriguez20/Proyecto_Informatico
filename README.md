@@ -1,4 +1,4 @@
-# Microservicio 04 (Interactions & Reputation)
+# Developer's Portal - Microservicio 04 (Interactions & Reputation)
 
 MS-04 implementa la EPI-004: Interacciones y Sistema de Reputacion.
 
@@ -7,10 +7,10 @@ MS-04 implementa la EPI-004: Interacciones y Sistema de Reputacion.
 Implementado ahora:
 - HU-019: Comentarios en publicaciones y preguntas.
 - HU-020: Sistema de puntuacion (1-5 estrellas) para publicaciones y respuestas.
-
-Incluido en el schema (epica completa):
 - HU-021: Calificacion promedio automatica del usuario.
 - HU-022: Estadisticas basicas del usuario.
+- HU-023: Notificacion de respuesta aceptada.
+- HU-024: Centro de notificaciones del usuario.
 
 ## Arquitectura
 
@@ -37,6 +37,12 @@ src/
   app/api/publications/[id]/ratings/route.ts
   app/api/answers/[id]/rate/route.ts
   app/api/answers/[id]/ratings/route.ts
+  app/api/users/[id]/stats/route.ts
+  app/api/questions/[id]/answers/[answerId]/accepted-notification/route.ts
+  app/api/notifications/route.ts
+  app/api/notifications/unread-count/route.ts
+  app/api/notifications/read-all/route.ts
+  app/api/notifications/[id]/read/route.ts
 
   modules/interactions/
     interactions.schema.ts
@@ -60,6 +66,10 @@ src/
 - `UserStats` (HU-022)
   - Snapshot de estadisticas agregadas del usuario + reputacion.
 
+- `Notification` (HU-023 / HU-024)
+  - Notificaciones del usuario autenticado.
+  - Soporta estados leida/no leida y metadata del evento.
+
 ## Variables de entorno
 
 - `DATABASE_URL`
@@ -75,7 +85,6 @@ npm install
 npx prisma generate
 npx prisma db push
 npm run dev
-# Se ejecutará en el puerto 3004 para no causar conflicto con los otros microservicios
 ```
 
 Validacion tecnica:
@@ -120,3 +129,15 @@ Body:
   "score": 4
 }
 ```
+
+### Estadisticas publicas de usuario (HU-022)
+- `GET /api/users/:id/stats` (publico)
+
+### Notificacion de respuesta aceptada (HU-023)
+- `POST /api/questions/:id/answers/:answerId/accepted-notification` (auth)
+
+### Centro de notificaciones (HU-024)
+- `GET /api/notifications?page=1&limit=20&unreadOnly=false` (auth)
+- `GET /api/notifications/unread-count` (auth)
+- `PATCH /api/notifications/:id/read` (auth)
+- `PATCH /api/notifications/read-all` (auth)

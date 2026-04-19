@@ -24,6 +24,19 @@ enum RatingTargetType {
   @@schema("interactions")
 }
 
+enum NotificationType {
+  ANSWER_ACCEPTED
+
+  @@schema("interactions")
+}
+
+enum NotificationEntityType {
+  QUESTION
+  ANSWER
+
+  @@schema("interactions")
+}
+
 model Comment {
   id          String   @id @default(uuid())
   authorId    String
@@ -55,6 +68,30 @@ model Rating {
   @@index([targetAuthorId])
   @@index([score])
   @@map("ratings")
+  @@schema("interactions")
+}
+
+model Notification {
+  id                String                 @id @default(uuid())
+  userId            String
+  type              NotificationType
+  entityType        NotificationEntityType
+  entityId          String
+  questionId        String?
+  title             String                 @db.VarChar(150)
+  message           String                 @db.VarChar(500)
+  isRead            Boolean                @default(false)
+  readAt            DateTime?
+  triggeredByUserId String?
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([userId, type, entityType, entityId])
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type])
+  @@map("notifications")
   @@schema("interactions")
 }
 
