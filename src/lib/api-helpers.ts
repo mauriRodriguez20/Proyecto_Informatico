@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
+export interface AuthenticatedUserSnapshot {
+  id: string;
+  email: string | null;
+  userMetadata: Record<string, unknown> | null;
+}
+
 export type AuthResult =
-  | { userId: string; errorResponse: null }
-  | { userId: null; errorResponse: NextResponse };
+  | {
+      userId: string;
+      authUser: AuthenticatedUserSnapshot;
+      bearerToken: string;
+      errorResponse: null;
+    }
+  | {
+      userId: null;
+      authUser: null;
+      bearerToken: null;
+      errorResponse: NextResponse;
+    };
 
 const MAX_TOKEN_AGE_SECONDS = 24 * 60 * 60;
 
@@ -51,6 +67,8 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
   if (!token) {
     return {
       userId: null,
+      authUser: null,
+      bearerToken: null,
       errorResponse: NextResponse.json(
         { error: "Token de autenticacion requerido." },
         { status: 401 }
@@ -61,6 +79,8 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
   if (isTokenExpiredByPolicy(token)) {
     return {
       userId: null,
+      authUser: null,
+      bearerToken: null,
       errorResponse: NextResponse.json(
         { error: "No autorizado. La sesion expiro (maximo 24 horas)." },
         { status: 401 }
@@ -97,6 +117,8 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
   if (!user) {
     return {
       userId: null,
+      authUser: null,
+      bearerToken: null,
       errorResponse: NextResponse.json(
         { error: "No autorizado. Sesion invalida o expirada." },
         { status: 401 }
@@ -104,5 +126,17 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
     };
   }
 
-  return { userId: user.id, errorResponse: null };
+  return {
+    userId: user.id,
+    authUser: {
+      id: user.id,
+      email: user.email ?? null,
+      userMetadata:
+        user.user_metadata && typeof user.user_metadata === "object"
+          ? (user.user_metadata as Record<string, unknown>)
+          : null,
+    },
+    bearerToken: token,
+    errorResponse: null,
+  };
 }

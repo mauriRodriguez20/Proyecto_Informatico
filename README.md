@@ -46,6 +46,7 @@ Roles disponibles: `FRONTEND`, `BACKEND`.
 |---|---|---|---|
 | `POST` | `/api/users/register` | Público | Registro de nuevo usuario |
 | `POST` | `/api/users/login` | Público | Inicio de sesión |
+| `POST` | `/api/users/oauth/session` | Autenticado (Bearer Supabase) | Sincronizar/crear usuario OAuth y devolver sesi�n |
 | `POST` | `/api/users/logout` | Autenticado | Cierre de sesión |
 | `GET` | `/api/users/:id` | Público | Obtener perfil de usuario |
 | `PATCH` | `/api/users/:id` | Autenticado | Actualizar perfil propio |
