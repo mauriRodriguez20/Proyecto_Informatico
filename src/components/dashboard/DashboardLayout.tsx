@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className={styles.content}>
                 <header className={styles.header}>
                     <div className={styles.headerActions}>
-                        {/* <NotificationCenter /> */}
+                        <NotificationCenter />
                         <UserMenu />
                     </div>
                 </header>

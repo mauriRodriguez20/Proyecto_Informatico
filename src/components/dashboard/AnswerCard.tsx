@@ -18,7 +18,6 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
     const [voteScore, setVoteScore] = useState(answer.voteScore);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [editContent, setEditContent] = useState(answer.content);
     const [editCode, setEditCode] = useState(answer.codeBlock || '');
     const [editLang, setEditLang] = useState(answer.language || '');
@@ -48,23 +47,15 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
     const handleAccept = async () => {
         if (!confirm('Mark this as the accepted answer?')) return;
         try {
-            await questionsService.acceptAnswer(questionId, answer.id);
-            onUpdate();
+            const response = await questionsService.acceptAnswer(questionId, answer.id);
+            if (response.notification?.status === 'failed') {
+                alert(response.notification.details || 'Answer accepted, but the notification could not be sent.');
+            } else if (response.notification?.status === 'skipped') {
+                alert(response.notification.details || 'Answer accepted, but notification was skipped.');
+            }
+            void onUpdate();
         } catch (err: any) {
             alert(err.message || 'Error accepting answer');
-        }
-    };
-
-    const handleDelete = async () => {
-        if (!confirm('¿Seguro que quieres eliminar esta respuesta? Esta acción no se puede deshacer.')) return;
-        setIsDeleting(true);
-        try {
-            await questionsService.deleteAnswer(questionId, answer.id);
-            onUpdate();
-        } catch (err: any) {
-            alert(err.message || 'Error al eliminar la respuesta.');
-        } finally {
-            setIsDeleting(false);
         }
     };
 
@@ -203,15 +194,6 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                         {isOwner && !isEditing && (
                             <button className={styles.editBtn} onClick={() => setIsEditing(true)}>
                                 Edit
-                            </button>
-                        )}
-                        {isOwner && !answer.isAccepted && !isEditing && (
-                            <button
-                                className={styles.deleteBtn}
-                                onClick={handleDelete}
-                                disabled={isDeleting}
-                            >
-                                {isDeleting ? 'Eliminando...' : 'Delete'}
                             </button>
                         )}
                         {isQuestionAuthor && !answer.isAccepted && (

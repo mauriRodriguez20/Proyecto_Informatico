@@ -99,6 +99,11 @@
     text-decoration: underline;
 }
 
+.markAllBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .list {
     max-height: 400px;
     overflow-y: auto;
@@ -112,6 +117,13 @@
     transition: background 0.2s;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    text-align: left;
+    background: transparent;
+    color: inherit;
 }
 
 .item:hover {
@@ -183,6 +195,13 @@
     color: var(--color-text-muted);
 }
 
+.stateMessage {
+    padding: 24px;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
 .footer {
     padding: 12px;
     border-top: 1px solid var(--color-border);
@@ -201,6 +220,13 @@
 
 .viewAllBtn:hover {
     color: var(--color-text);
+}
+
+.errorText {
+    color: #fda4af;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    display: block;
 }
 
 @media (max-width: 480px) {

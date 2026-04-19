@@ -18,6 +18,7 @@ export interface Question {
         avatarUrl: string | null;
         role: string;
         avgRating?: number;
+        totalRatings?: number;
     };
 }
 
@@ -37,6 +38,7 @@ export interface Answer {
         avatarUrl: string | null;
         role: string;
         avgRating?: number;
+        totalRatings?: number;
     };
 }
 
@@ -51,6 +53,15 @@ export interface QuestionsResponse {
 export interface VoteAnswerResponse {
     message?: string;
     voteScore: number;
+}
+
+export interface AcceptAnswerResponse {
+    message?: string;
+    answer: Answer;
+    notification?: {
+        status: 'sent' | 'skipped' | 'failed';
+        details?: string;
+    };
 }
 
 export const questionsService = {
@@ -110,8 +121,8 @@ export const questionsService = {
         });
     },
 
-    async acceptAnswer(questionId: string, answerId: string) {
-        return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}/accept`, {
+    async acceptAnswer(questionId: string, answerId: string): Promise<AcceptAnswerResponse> {
+        return apiRequest<AcceptAnswerResponse>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}/accept`, {
             method: "PATCH",
         });
     },
@@ -124,12 +135,6 @@ export const questionsService = {
         return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
-        });
-    },
-
-    async deleteAnswer(questionId: string, answerId: string): Promise<void> {
-        return apiRequest<void>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}`, {
-            method: 'DELETE',
         });
     },
 

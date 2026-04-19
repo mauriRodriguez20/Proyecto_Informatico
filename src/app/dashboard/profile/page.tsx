@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { userService } from '@/services/user.service';
+import { interactionsService, UserPublicStats } from '@/services/interactions.service';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import ChangePasswordModal from '@/components/dashboard/ChangePasswordModal';
 import styles from './Profile.module.css';
@@ -14,8 +15,8 @@ export default function RedesignedProfilePage() {
     const [showRoleDropdown, setShowRoleDropdown] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
-    const [avgRating, setAvgRating] = useState<number | null>(null);
-    const [totalRatings, setTotalRatings] = useState(0);
+    const [stats, setStats] = useState<UserPublicStats | null>(null);
+    const [statsError, setStatsError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
@@ -49,19 +50,42 @@ export default function RedesignedProfilePage() {
                     description: profile.description || '',
                     avatarUrl: profile.avatarUrl || prev.avatarUrl || '',
                 }));
-                if (typeof profile.avgRating === 'number') {
-                    setAvgRating(profile.avgRating);
-                }
-                if (typeof profile.totalRatings === 'number') {
-                    setTotalRatings(profile.totalRatings);
-                }
             })
             .catch(() => {
                 // Keep local fallback values if profile fetch fails.
             });
     }, [user]);
 
+    useEffect(() => {
+        if (!user) return;
+
+        let isCancelled = false;
+
+        interactionsService
+            .getUserPublicStats(user.id)
+            .then((response) => {
+                if (isCancelled) return;
+                setStats(response);
+                setStatsError(null);
+                updateUser({ rating: response.avgRating });
+            })
+            .catch(() => {
+                if (isCancelled) return;
+                setStatsError('Could not refresh profile stats right now.');
+            });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [user?.id, updateUser]);
+
     if (isLoading || !user) return null;
+
+    const ratingValue = Number(stats?.avgRating ?? user.rating ?? 0);
+    const publicationsCount = Number(stats?.publicationsCount ?? 0);
+    const questionsCount = Number(stats?.questionsCount ?? 0);
+    const answersCount = Number(stats?.answersCount ?? 0);
+    const totalRatings = Number(stats?.totalRatings ?? 0);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -305,17 +329,27 @@ export default function RedesignedProfilePage() {
                             <div className={styles.statList}>
                                 <div className={styles.statItem}>
                                     <span>Rating</span>
-                                    <strong>
-                                        {totalRatings === 0
-                                            ? 'Sin calificaciones'
-                                            : `${avgRating?.toFixed(1) ?? '—'} / 5`}
-                                    </strong>
+                                    <strong>{ratingValue.toFixed(1)}</strong>
                                 </div>
                                 <div className={styles.statItem}>
                                     <span>Publications</span>
-                                    <strong>12</strong>
+                                    <strong>{publicationsCount}</strong>
+                                </div>
+                                <div className={styles.statItem}>
+                                    <span>Questions</span>
+                                    <strong>{questionsCount}</strong>
+                                </div>
+                                <div className={styles.statItem}>
+                                    <span>Answers</span>
+                                    <strong>{answersCount}</strong>
+                                </div>
+                                <div className={styles.statItem}>
+                                    <span>Ratings Received</span>
+                                    <strong>{totalRatings}</strong>
                                 </div>
                             </div>
+                            {stats?.label && <p className={styles.statsHint}>{stats.label}</p>}
+                            {statsError && <p className={styles.statsError}>{statsError}</p>}
                         </div>
 
                         <div className={styles.infoCard}>
