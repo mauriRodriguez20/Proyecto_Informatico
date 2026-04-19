@@ -13,6 +13,25 @@ export const listCommentsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(10),
 });
 
+const booleanQuerySchema = z.preprocess((value) => {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value === "boolean") return value;
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "si"].includes(normalized)) return true;
+    if (["false", "0", "no"].includes(normalized)) return false;
+  }
+
+  return value;
+}, z.boolean());
+
+export const listNotificationsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+  unreadOnly: booleanQuerySchema.default(false),
+});
+
 export const rateTargetSchema = z.object({
   score: z
     .number({
@@ -28,4 +47,5 @@ export const uuidParamSchema = z.string().uuid("El identificador debe ser un UUI
 
 export type CreateCommentBody = z.infer<typeof createCommentSchema>;
 export type ListCommentsQuery = z.infer<typeof listCommentsQuerySchema>;
+export type ListNotificationsQuery = z.infer<typeof listNotificationsQuerySchema>;
 export type RateTargetBody = z.infer<typeof rateTargetSchema>;

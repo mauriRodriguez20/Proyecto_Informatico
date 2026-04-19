@@ -1,15 +1,28 @@
 import { prisma } from "@/lib/prisma";
-import { CommentTargetType, Prisma, RatingTargetType } from "@prisma/client";
+import {
+  CommentTargetType,
+  NotificationEntityType,
+  NotificationType,
+  Prisma,
+  RatingTargetType,
+} from "@prisma/client";
 import type {
   AuthorSnapshot,
   CommentItem,
   CreateCommentInput,
+  ListNotificationsQuery,
+  MarkAllReadResult,
+  MarkReadResult,
+  NotificationItem,
+  PaginatedNotificationsResponse,
   ListCommentsQuery,
   PaginatedCommentsResponse,
   RateInput,
   RateResult,
   RatingSummary,
+  UnreadCountResult,
   UserReputationSnapshot,
+  UserStatsSnapshot,
 } from "./interactions.types";
 
 type TxClient = Prisma.TransactionClient;
@@ -25,6 +38,26 @@ interface UserRoleRow {
 
 interface ExistsRow {
   exists: boolean;
+}
+
+interface CountRow {
+  count: number;
+}
+
+interface QuestionSnapshotRow {
+  id: string;
+  title: string;
+  authorId: string;
+}
+
+interface AnswerSnapshotRow {
+  id: string;
+  authorId: string;
+  questionId: string;
+}
+
+interface UsernameRow {
+  username: string | null;
 }
 
 const ADMIN_ROLES = new Set(["ADMIN", "SUPER_ADMIN"]);
@@ -222,6 +255,80 @@ async function refreshPublicationCommentsCount(
   );
 }
 
+async function countUserPublications(userId: string): Promise<number> {
+  const rows = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
+    SELECT COUNT(*)::int AS "count"
+    FROM "publications"."publications"
+    WHERE "authorId" = ${userId}
+  `);
+
+  return rows[0]?.count ?? 0;
+}
+
+async function countUserQuestions(userId: string): Promise<number> {
+  const rows = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
+    SELECT COUNT(*)::int AS "count"
+    FROM "questions"."questions"
+    WHERE "authorId" = ${userId}
+  `);
+
+  return rows[0]?.count ?? 0;
+}
+
+async function countUserAnswers(userId: string): Promise<number> {
+  const rows = await prisma.$queryRaw<CountRow[]>(Prisma.sql`
+    SELECT COUNT(*)::int AS "count"
+    FROM "questions"."answers"
+    WHERE "authorId" = ${userId}
+  `);
+
+  return rows[0]?.count ?? 0;
+}
+
+async function getQuestionSnapshot(questionId: string): Promise<QuestionSnapshotRow | null> {
+  const rows = await prisma.$queryRaw<QuestionSnapshotRow[]>(Prisma.sql`
+    SELECT "id", "title", "authorId"
+    FROM "questions"."questions"
+    WHERE "id" = ${questionId}
+    LIMIT 1
+  `);
+
+  return rows[0] ?? null;
+}
+
+async function getAnswerSnapshot(answerId: string): Promise<AnswerSnapshotRow | null> {
+  const rows = await prisma.$queryRaw<AnswerSnapshotRow[]>(Prisma.sql`
+    SELECT "id", "authorId", "questionId"
+    FROM "questions"."answers"
+    WHERE "id" = ${answerId}
+    LIMIT 1
+  `);
+
+  return rows[0] ?? null;
+}
+
+async function getUsername(userId: string): Promise<string> {
+  const rows = await prisma.$queryRaw<UsernameRow[]>(Prisma.sql`
+    SELECT "username"
+    FROM "users"."users"
+    WHERE "id" = ${userId}
+    LIMIT 1
+  `);
+
+  return rows[0]?.username?.trim() || "usuario";
+}
+
+async function ensureUserExists(userId: string): Promise<void> {
+  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    SELECT "id"
+    FROM "users"."users"
+    WHERE "id" = ${userId}
+    LIMIT 1
+  `);
+
+  if (!rows[0]) throw new Error("USER_NOT_FOUND");
+}
+
 async function createCommentByTarget(
   targetType: CommentTargetType,
   targetId: string,
@@ -282,6 +389,11 @@ async function refreshUserReputation(
 
   const avgRating = roundOneDecimal(aggregate._avg.score ?? 0);
   const totalRatings = aggregate._count.score;
+  const [publicationsCount, questionsCount, answersCount] = await Promise.all([
+    countUserPublications(userId),
+    countUserQuestions(userId),
+    countUserAnswers(userId),
+  ]);
 
   await tx.userReputation.upsert({
     where: { userId },
@@ -300,10 +412,16 @@ async function refreshUserReputation(
     where: { userId },
     create: {
       userId,
+      publicationsCount,
+      questionsCount,
+      answersCount,
       avgRating,
       totalRatings,
     },
     update: {
+      publicationsCount,
+      questionsCount,
+      answersCount,
       avgRating,
       totalRatings,
     },
@@ -601,4 +719,260 @@ export async function getAnswerRatingSummary(
 ): Promise<RatingSummary> {
   const answer = await assertAnswerExists(answerId);
   return buildRatingSummary(RatingTargetType.ANSWER, answerId, answer.authorId, requesterId);
+}
+
+export async function getUserPublicStats(userId: string): Promise<UserStatsSnapshot> {
+  await ensureUserExists(userId);
+
+  return prisma.$transaction(async (tx) => {
+    const [publicationsCount, questionsCount, answersCount, aggregate] = await Promise.all([
+      countUserPublications(userId),
+      countUserQuestions(userId),
+      countUserAnswers(userId),
+      tx.rating.aggregate({
+        where: { targetAuthorId: userId },
+        _avg: { score: true },
+        _count: { score: true },
+      }),
+    ]);
+
+    const avgRating = roundOneDecimal(aggregate._avg.score ?? 0);
+    const totalRatings = aggregate._count.score;
+    const label = ratingLabel(totalRatings);
+
+    await tx.userReputation.upsert({
+      where: { userId },
+      create: {
+        userId,
+        avgRating,
+        totalRatings,
+      },
+      update: {
+        avgRating,
+        totalRatings,
+      },
+    });
+
+    await tx.userStats.upsert({
+      where: { userId },
+      create: {
+        userId,
+        publicationsCount,
+        questionsCount,
+        answersCount,
+        avgRating,
+        totalRatings,
+      },
+      update: {
+        publicationsCount,
+        questionsCount,
+        answersCount,
+        avgRating,
+        totalRatings,
+      },
+    });
+
+    await tx.$executeRaw(
+      Prisma.sql`
+        UPDATE "users"."users"
+        SET
+          "avgRating" = ${avgRating},
+          "totalRatings" = ${totalRatings},
+          "updatedAt" = NOW()
+        WHERE "id" = ${userId}
+      `
+    );
+
+    return {
+      userId,
+      publicationsCount,
+      questionsCount,
+      answersCount,
+      avgRating,
+      totalRatings,
+      label,
+    };
+  });
+}
+
+export async function createAcceptedAnswerNotification(
+  questionId: string,
+  answerId: string,
+  acceptedByUserId: string
+): Promise<NotificationItem | null> {
+  const [question, answer] = await Promise.all([
+    getQuestionSnapshot(questionId),
+    getAnswerSnapshot(answerId),
+  ]);
+
+  if (!question) throw new Error("QUESTION_NOT_FOUND");
+  if (!answer) throw new Error("ANSWER_NOT_FOUND");
+  if (answer.questionId !== question.id) throw new Error("ANSWER_QUESTION_MISMATCH");
+  if (question.authorId !== acceptedByUserId) throw new Error("FORBIDDEN_ACCEPT_NOTIFICATION");
+
+  if (answer.authorId === acceptedByUserId) {
+    return null;
+  }
+
+  const acceptedByUsername = await getUsername(acceptedByUserId);
+  const safeQuestionTitle = question.title?.trim() || "Pregunta";
+  const message = `Tu respuesta fue marcada como aceptada en "${safeQuestionTitle}" por ${acceptedByUsername}.`;
+
+  return prisma.notification.upsert({
+    where: {
+      userId_type_entityType_entityId: {
+        userId: answer.authorId,
+        type: NotificationType.ANSWER_ACCEPTED,
+        entityType: NotificationEntityType.ANSWER,
+        entityId: answer.id,
+      },
+    },
+    create: {
+      userId: answer.authorId,
+      type: NotificationType.ANSWER_ACCEPTED,
+      entityType: NotificationEntityType.ANSWER,
+      entityId: answer.id,
+      questionId: question.id,
+      title: "Respuesta aceptada",
+      message,
+      isRead: false,
+      triggeredByUserId: acceptedByUserId,
+      metadata: {
+        questionId: question.id,
+        questionTitle: safeQuestionTitle,
+        answerId: answer.id,
+        acceptedByUserId,
+        acceptedByUsername,
+      },
+    },
+    update: {
+      questionId: question.id,
+      title: "Respuesta aceptada",
+      message,
+      isRead: false,
+      readAt: null,
+      triggeredByUserId: acceptedByUserId,
+      metadata: {
+        questionId: question.id,
+        questionTitle: safeQuestionTitle,
+        answerId: answer.id,
+        acceptedByUserId,
+        acceptedByUsername,
+      },
+    },
+  });
+}
+
+export async function listMyNotifications(
+  userId: string,
+  query: ListNotificationsQuery
+): Promise<PaginatedNotificationsResponse> {
+  const { page, limit, unreadOnly } = query;
+  const skip = (page - 1) * limit;
+
+  const where = {
+    userId,
+    ...(unreadOnly ? { isRead: false } : {}),
+  };
+
+  const [data, total, unreadCount] = await prisma.$transaction([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.notification.count({ where }),
+    prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    }),
+  ]);
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.max(1, Math.ceil(total / limit)),
+    unreadCount,
+    hasUnread: unreadCount > 0,
+    ...(total === 0 ? { emptyMessage: "No tienes notificaciones nuevas." } : {}),
+  };
+}
+
+export async function getMyUnreadNotificationsCount(userId: string): Promise<UnreadCountResult> {
+  const unreadCount = await prisma.notification.count({
+    where: {
+      userId,
+      isRead: false,
+    },
+  });
+
+  return { unreadCount };
+}
+
+export async function markNotificationAsRead(
+  userId: string,
+  notificationId: string
+): Promise<MarkReadResult> {
+  const existing = await prisma.notification.findFirst({
+    where: {
+      id: notificationId,
+      userId,
+    },
+    select: {
+      id: true,
+      isRead: true,
+      readAt: true,
+    },
+  });
+
+  if (!existing) throw new Error("NOTIFICATION_NOT_FOUND");
+
+  if (existing.isRead) {
+    return {
+      notificationId: existing.id,
+      isRead: true,
+      readAt: existing.readAt,
+    };
+  }
+
+  const updated = await prisma.notification.update({
+    where: {
+      id: notificationId,
+    },
+    data: {
+      isRead: true,
+      readAt: new Date(),
+    },
+    select: {
+      id: true,
+      isRead: true,
+      readAt: true,
+    },
+  });
+
+  return {
+    notificationId: updated.id,
+    isRead: updated.isRead,
+    readAt: updated.readAt,
+  };
+}
+
+export async function markAllNotificationsAsRead(userId: string): Promise<MarkAllReadResult> {
+  const result = await prisma.notification.updateMany({
+    where: {
+      userId,
+      isRead: false,
+    },
+    data: {
+      isRead: true,
+      readAt: new Date(),
+    },
+  });
+
+  return { updatedCount: result.count };
 }
