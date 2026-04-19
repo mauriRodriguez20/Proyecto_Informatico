@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './LoginForm.module.css';
 import FormInput from './FormInput';
@@ -19,7 +19,7 @@ interface Errors {
 }
 
 export default function LoginForm({ onSuccess }: LoginFormProps) {
-    const { login, isLoading } = useAuth();
+    const { login, isLoading, error } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<Errors>({});
@@ -53,6 +53,11 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
             setErrors({ general: err.message || 'Invalid credentials. Please try again.' });
         }
     };
+
+    useEffect(() => {
+        if (!error) return;
+        setErrors(prev => ({ ...prev, general: error }));
+    }, [error]);
 
     if (showForgotPassword) {
         return <ForgotPasswordView onBack={() => setShowForgotPassword(false)} />;

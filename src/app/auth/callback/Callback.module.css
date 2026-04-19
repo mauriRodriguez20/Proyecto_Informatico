@@ -1,0 +1,44 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: radial-gradient(circle at top, #181a3b 0%, #070814 55%, #05060f 100%);
+}
+
+.card {
+    width: min(480px, 100%);
+    background: rgba(14, 16, 34, 0.95);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 16px;
+    padding: 28px;
+    color: #e8ebff;
+    text-align: center;
+}
+
+.card h1 {
+    margin: 0 0 10px;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.card p {
+    margin: 0;
+    color: #a8add6;
+}
+
+.error {
+    color: #fda4af !important;
+    margin-bottom: 16px !important;
+}
+
+.button {
+    border: none;
+    border-radius: 10px;
+    background: #6366f1;
+    color: #ffffff;
+    padding: 10px 16px;
+    font-weight: 700;
+    cursor: pointer;
+}

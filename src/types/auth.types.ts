@@ -13,6 +13,8 @@ export interface LoginCredentials {
     password: string;
 }
 
+export type OAuthProvider = 'google' | 'github';
+
 export interface RegisterData {
     username: string;
     email: string;

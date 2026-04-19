@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import styles from './SocialAuth.module.css';
 
 const GoogleIcon = () => (
@@ -16,6 +20,18 @@ const GitHubIcon = () => (
 );
 
 export default function SocialAuth() {
+    const { loginWithOAuth, isLoading } = useAuth();
+    const [activeProvider, setActiveProvider] = useState<'google' | 'github' | null>(null);
+
+    const handleOAuth = async (provider: 'google' | 'github') => {
+        setActiveProvider(provider);
+        try {
+            await loginWithOAuth(provider);
+        } finally {
+            setActiveProvider(null);
+        }
+    };
+
     return (
         <div className={styles.wrapper}>
             <div className={styles.divider}>
@@ -25,13 +41,25 @@ export default function SocialAuth() {
             </div>
 
             <div className={styles.buttons}>
-                <button className={`${styles.btn} ${styles.google}`} type="button" aria-label="Sign in with Google">
+                <button
+                    className={`${styles.btn} ${styles.google}`}
+                    type="button"
+                    aria-label="Sign in with Google"
+                    disabled={isLoading}
+                    onClick={() => void handleOAuth('google')}
+                >
                     <GoogleIcon />
-                    Google
+                    {activeProvider === 'google' ? 'Connecting...' : 'Google'}
                 </button>
-                <button className={`${styles.btn} ${styles.github}`} type="button" aria-label="Sign in with GitHub">
+                <button
+                    className={`${styles.btn} ${styles.github}`}
+                    type="button"
+                    aria-label="Sign in with GitHub"
+                    disabled={isLoading}
+                    onClick={() => void handleOAuth('github')}
+                >
                     <GitHubIcon />
-                    GitHub
+                    {activeProvider === 'github' ? 'Connecting...' : 'GitHub'}
                 </button>
             </div>
         </div>
