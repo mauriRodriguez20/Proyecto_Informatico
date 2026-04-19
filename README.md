@@ -82,6 +82,7 @@ Usar el mismo `.env` base de MS-01/MS-02:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `MS01_URL` (cross-fetch de autor en detalle)
+- `MS04_URL` (disparo de notificacion de respuesta aceptada en MS04)
 
 ## Instalacion y Ejecucion
 
@@ -169,6 +170,11 @@ Body parcial permitido:
 - Metodo: `PATCH`
 - Ruta: `/api/questions/:id/answers/:answerId/accept`
 - Protegido: Si (solo autor de la pregunta)
+
+Comportamiento adicional:
+- Tras aceptar, MS03 intenta notificar a MS04 en:
+  - `POST /api/questions/:id/answers/:answerId/accepted-notification`
+- Si MS04 no esta disponible, la respuesta igualmente queda aceptada y se registra advertencia en logs.
 
 ### 7) Votar respuesta (complemento Epica 3)
 - Metodo: `POST`
