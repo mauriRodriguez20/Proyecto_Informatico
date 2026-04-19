@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import type { AuthenticatedUserSnapshot } from "@/lib/api-helpers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   ChangePasswordInput,
@@ -170,6 +171,93 @@ async function ensureTechnologyIdsExist(technologyIds: string[]): Promise<boolea
   return total === technologyIds.length;
 }
 
+function sanitizeUsernameSeed(value: string): string {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9._-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^[_\-.]+|[_\-.]+$/g, "");
+
+  if (!normalized) return "dev_user";
+  if (normalized.length >= 3) return normalized.slice(0, 30);
+
+  return `${normalized}_dev`.slice(0, 30);
+}
+
+function resolveOAuthRole(userMetadata: Record<string, unknown> | null): "FRONTEND" | "BACKEND" {
+  const rawRole =
+    typeof userMetadata?.role === "string"
+      ? userMetadata.role.toUpperCase()
+      : null;
+
+  if (rawRole === "FRONTEND" || rawRole === "BACKEND") {
+    return rawRole;
+  }
+
+  return "FRONTEND";
+}
+
+function resolveOAuthAvatarUrl(userMetadata: Record<string, unknown> | null): string | null {
+  const candidates = [
+    userMetadata?.avatar_url,
+    userMetadata?.picture,
+    userMetadata?.avatar,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+function resolveOAuthUsername(
+  userMetadata: Record<string, unknown> | null,
+  email: string
+): string {
+  const usernameCandidates = [
+    userMetadata?.user_name,
+    userMetadata?.username,
+    userMetadata?.preferred_username,
+    userMetadata?.full_name,
+    email.split("@")[0],
+  ];
+
+  for (const candidate of usernameCandidates) {
+    if (typeof candidate === "string" && candidate.trim().length > 0) {
+      return sanitizeUsernameSeed(candidate);
+    }
+  }
+
+  return "dev_user";
+}
+
+async function ensureUniqueUsername(baseUsername: string, currentUserId?: string): Promise<string> {
+  const safeBase = sanitizeUsernameSeed(baseUsername);
+
+  for (let i = 0; i < 500; i += 1) {
+    const suffix = i === 0 ? "" : `_${i}`;
+    const maxBaseLength = Math.max(3, 30 - suffix.length);
+    const candidate = `${safeBase.slice(0, maxBaseLength)}${suffix}`;
+
+    const existing = await prisma.user.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    });
+
+    if (!existing || (currentUserId && existing.id === currentUserId)) {
+      return candidate;
+    }
+  }
+
+  return `${safeBase.slice(0, 22)}_${Math.floor(Math.random() * 10000000)}`;
+}
+
 export async function registerUser(input: RegisterInput): Promise<RegisterResult> {
   const email = normalizeEmail(input.email);
   const username = input.username.trim();
@@ -277,6 +365,80 @@ export async function loginUser(input: LoginInput): Promise<LoginResult> {
     user: mapUser(user),
     accessToken: data.session.access_token,
   };
+}
+
+export async function syncOAuthUserSession(
+  authUser: AuthenticatedUserSnapshot
+): Promise<UserDto> {
+  const email = authUser.email ? normalizeEmail(authUser.email) : "";
+  if (!email) throw new Error("OAUTH_EMAIL_REQUIRED");
+
+  const metadata = authUser.userMetadata;
+  const oauthRole = resolveOAuthRole(metadata);
+  const oauthAvatarUrl = resolveOAuthAvatarUrl(metadata);
+
+  const existingById = await prisma.user.findUnique({
+    where: { id: authUser.id },
+    select: USER_SELECT,
+  });
+
+  if (existingById) {
+    const updateData: Prisma.UserUpdateInput = {};
+
+    if (existingById.email !== email) {
+      const emailOwner = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+
+      if (emailOwner && emailOwner.id !== authUser.id) {
+        throw new Error("OAUTH_EMAIL_CONFLICT");
+      }
+
+      updateData.email = email;
+    }
+
+    if (oauthAvatarUrl && existingById.avatarUrl !== oauthAvatarUrl) {
+      updateData.avatarUrl = oauthAvatarUrl;
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      const updatedUser = await prisma.user.update({
+        where: { id: authUser.id },
+        data: updateData,
+        select: USER_SELECT,
+      });
+      return mapUser(updatedUser);
+    }
+
+    return mapUser(existingById);
+  }
+
+  const existingByEmail = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (existingByEmail && existingByEmail.id !== authUser.id) {
+    throw new Error("OAUTH_EMAIL_CONFLICT");
+  }
+
+  const generatedUsername = await ensureUniqueUsername(
+    resolveOAuthUsername(metadata, email),
+    authUser.id
+  );
+
+  const createdUser = await prisma.user.create({
+    data: {
+      id: authUser.id,
+      email,
+      username: generatedUsername,
+      role: oauthRole,
+      avatarUrl: oauthAvatarUrl,
+    },
+    select: USER_SELECT,
+  });
+
+  return mapUser(createdUser);
 }
 
 export async function logoutUser(_accessToken?: string): Promise<void> {
