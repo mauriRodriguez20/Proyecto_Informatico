@@ -1,12 +1,12 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { AuthUser, LoginCredentials, RegisterData } from '@/types/auth.types';
+import { AuthUser, LoginCredentials, OAuthProvider, RegisterData } from '@/types/auth.types';
 import { UserProfile } from '@/types/user.types';
 import { userService } from '@/services/user.service';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 import LoadingOverlay from '@/components/shared/LoadingOverlay/LoadingOverlay';
 
-/** Map a backend UserProfile to the frontend AuthUser shape */
 function toAuthUser(profile: UserProfile): AuthUser {
     return {
         id: profile.id,
@@ -27,6 +27,8 @@ interface AuthContextType {
     isLoading: boolean;
     error: string | null;
     login: (credentials: LoginCredentials) => Promise<void>;
+    loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
+    completeOAuthLogin: () => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => Promise<void>;
     updateUser: (data: Partial<AuthUser>) => void;
@@ -40,7 +42,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [loadingMessage, setLoadingMessage] = useState('Initializing portal...');
     const [error, setError] = useState<string | null>(null);
 
-    // Restaurar sesión al inicio
+    const persistSession = useCallback((token: string, profile: UserProfile) => {
+        const authUser = toAuthUser(profile);
+        setUser(authUser);
+        localStorage.setItem('auth_token', token);
+        localStorage.setItem('access_token', token);
+        localStorage.setItem('user', JSON.stringify(authUser));
+    }, []);
+
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
@@ -51,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 localStorage.removeItem('user');
             }
         }
-        setLoading(false); // Terminar carga inicial
+        setLoading(false);
     }, []);
 
     const login = useCallback(async (credentials: LoginCredentials) => {
@@ -59,22 +68,79 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         setError(null);
         try {
-            setLoadingMessage('Validating credentials...');
             const { token, user: profile } = await userService.login(credentials);
-
-            setLoadingMessage('Preparing your workspace...');
-            const authUser = toAuthUser(profile);
-            setUser(authUser);
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('access_token', token);
-            localStorage.setItem('user', JSON.stringify(authUser));
+            persistSession(token, profile);
         } catch (err: any) {
             setError(err.message || 'Login failed');
             throw err;
         } finally {
             setLoading(false);
         }
+    }, [persistSession]);
+
+    const loginWithOAuth = useCallback(async (provider: OAuthProvider) => {
+        setLoadingMessage(`Redirecting to ${provider}...`);
+        setLoading(true);
+        setError(null);
+
+        try {
+            const supabase = getSupabaseBrowserClient();
+            const redirectTo = `${window.location.origin}/auth/callback`;
+
+            const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+                provider,
+                options: { redirectTo },
+            });
+
+            if (oauthError) throw oauthError;
+            if (!data.url) throw new Error('No OAuth redirect URL was returned by Supabase.');
+
+            window.location.assign(data.url);
+        } catch (err: any) {
+            const message = err.message || `Could not start ${provider} login.`;
+            setError(message);
+            setLoading(false);
+            throw new Error(message);
+        }
     }, []);
+
+    const completeOAuthLogin = useCallback(async () => {
+        setLoadingMessage('Completing OAuth session...');
+        setLoading(true);
+        setError(null);
+
+        try {
+            const supabase = getSupabaseBrowserClient();
+            const currentUrl = new URL(window.location.href);
+            const code = currentUrl.searchParams.get('code');
+
+            if (code) {
+                const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+                if (exchangeError) throw exchangeError;
+            }
+
+            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+
+            const accessToken = sessionData.session?.access_token;
+            if (!accessToken) throw new Error('OAuth session token was not found.');
+
+            const { token, user: profile } = await userService.syncOAuthSession(accessToken);
+            persistSession(token, profile);
+        } catch (err: any) {
+            const message = err.message || 'Could not complete OAuth login.';
+            setError(message);
+
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            setUser(null);
+
+            throw new Error(message);
+        } finally {
+            setLoading(false);
+        }
+    }, [persistSession]);
 
     const register = useCallback(async (data: RegisterData) => {
         setLoadingMessage('Creating your account...');
@@ -83,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
             let { token, user: profile } = await userService.register(data);
 
-            // If register does not return a session token, log in immediately.
             if (!token) {
                 const loginResult = await userService.login({
                     email: data.email,
@@ -93,25 +158,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 profile = loginResult.user;
             }
 
-            const authUser = toAuthUser(profile);
-            setUser(authUser);
-            localStorage.setItem('auth_token', token);
-            localStorage.setItem('access_token', token);
-            localStorage.setItem('user', JSON.stringify(authUser));
+            persistSession(token, profile);
         } catch (err: any) {
             setError(err.message || 'Registration failed');
             throw err;
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [persistSession]);
 
     const logout = useCallback(async () => {
         try {
-            // Notify backend to invalidate the session token
+            const supabase = getSupabaseBrowserClient();
+            await supabase.auth.signOut();
             await userService.logout();
         } catch {
-            // Ignore network errors on logout — still clear local session
+            // Ignore logout network errors, still clear local session.
         } finally {
             setUser(null);
             localStorage.removeItem('auth_token');
@@ -131,7 +193,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, isLoading, error, login, register, logout, updateUser }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                isLoading,
+                error,
+                login,
+                loginWithOAuth,
+                completeOAuthLogin,
+                register,
+                logout,
+                updateUser,
+            }}
+        >
             <LoadingOverlay isVisible={isLoading} message={loadingMessage} />
             {children}
         </AuthContext.Provider>

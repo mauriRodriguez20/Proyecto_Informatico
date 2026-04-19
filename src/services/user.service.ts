@@ -40,6 +40,19 @@ export const userService = {
     },
 
     /**
+     * POST /api/users/oauth/session
+     * Sincroniza usuario OAuth (Google/GitHub) en MS01 y devuelve token + perfil.
+     */
+    async syncOAuthSession(accessToken: string): Promise<LoginResponse> {
+        return apiRequest<LoginResponse>(BASE_URL_MS01, '/api/users/oauth/session', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+    },
+
+    /**
      * POST /api/users/logout
      * Invalida la sesión en el backend (requiere token).
      */

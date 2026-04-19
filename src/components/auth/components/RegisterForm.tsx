@@ -24,7 +24,7 @@ interface Errors {
 }
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
-    const { register, isLoading } = useAuth();
+    const { register, isLoading, error } = useAuth();
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -98,6 +98,11 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
             setErrors({ general: err.message || 'Registration failed. Please try again.' });
         }
     };
+
+    useEffect(() => {
+        if (!error) return;
+        setErrors(prev => ({ ...prev, general: error }));
+    }, [error]);
 
     return (
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
