@@ -1,0 +1,91 @@
+# MS-01(Users)/.github/workflows/ci.yml
+name: CI — MS-01 Users
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+      - 'backend'
+  pull_request:
+    branches:
+      - 'backend'
+
+jobs:
+  # ──────────────────────────────────────────────────────
+  # Job 1: Unit Tests — corre en TODOS los triggers
+  # ──────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Generar Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Ejecutar pruebas con cobertura
+        run: npm run test:coverage
+
+      - name: Subir reporte de cobertura
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-ms01
+          path: coverage/
+
+  # ──────────────────────────────────────────────────────
+  # Job 2: Lint + Build — solo en PR o push a backend
+  # ──────────────────────────────────────────────────────
+  full-ci:
+    name: Lint & Build Check
+    needs: unit-tests
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/backend'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build check
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+  # ──────────────────────────────────────────────────────
+  # Job 3: CD Placeholder — solo en push a backend
+  # ──────────────────────────────────────────────────────
+  deploy:
+    name: CD Placeholder
+    needs: full-ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/backend'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy placeholder
+        run: echo "CD no configurado aun — pendiente de despliegue en produccion"
