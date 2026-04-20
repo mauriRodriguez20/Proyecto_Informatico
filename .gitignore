@@ -10,3 +10,6 @@ prisma/migrations/
 .DS_Store
 *.pem
 npm-debug.log*
+
+# Cobertura de pruebas (artefacto generado)
+coverage/
