@@ -44,6 +44,11 @@ import {
   rateUser,
   registerUser,
   loginUser,
+  logoutUser,
+  syncOAuthUserSession,
+  sendPasswordResetEmail,
+  changeUserPassword,
+  updateUserProfile,
 } from '@/modules/users/users.service'
 
 // ─────────────────────────────────────────────────────────
@@ -327,5 +332,388 @@ describe('loginUser', () => {
 
     expect(result.user.id).toBe('user-ok')
     expect(result.accessToken).toBe('jwt-token')
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// logoutUser
+// ─────────────────────────────────────────────────────────
+describe('logoutUser', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('llama a supabase.auth.signOut y resuelve sin error', async () => {
+    const mockSupabase = {
+      auth: { signOut: vi.fn().mockResolvedValue({}) },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await expect(logoutUser('some-token')).resolves.toBeUndefined()
+    expect(mockSupabase.auth.signOut).toHaveBeenCalled()
+  })
+
+  it('no lanza aunque signOut falle (best-effort)', async () => {
+    const mockSupabase = {
+      auth: { signOut: vi.fn().mockRejectedValue(new Error('Network error')) },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await expect(logoutUser()).resolves.toBeUndefined()
+  })
+
+  it('funciona sin token (accessToken opcional)', async () => {
+    const mockSupabase = {
+      auth: { signOut: vi.fn().mockResolvedValue({}) },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await expect(logoutUser()).resolves.toBeUndefined()
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// syncOAuthUserSession
+// ─────────────────────────────────────────────────────────
+describe('syncOAuthUserSession', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('lanza OAUTH_EMAIL_REQUIRED si el authUser no tiene email', async () => {
+    await expect(
+      syncOAuthUserSession({ id: 'oauth-1', email: null, userMetadata: {} })
+    ).rejects.toThrow('OAUTH_EMAIL_REQUIRED')
+  })
+
+  it('retorna el usuario existente si ya hay registro con ese id (sin cambios)', async () => {
+    const existingUser = {
+      id: 'oauth-1', email: 'oauth@test.com', username: 'oauthuser',
+      role: 'FRONTEND', avatarUrl: null, description: null,
+      avgRating: 0, totalRatings: 0, createdAt: new Date(),
+    }
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(existingUser as any)
+
+    const result = await syncOAuthUserSession({
+      id: 'oauth-1', email: 'oauth@test.com', userMetadata: {},
+    })
+
+    expect(result.id).toBe('oauth-1')
+    expect(prisma.user.create).not.toHaveBeenCalled()
+  })
+
+  it('crea un nuevo usuario OAuth si no existe ninguno con ese id', async () => {
+    // findUnique por id → null; findUnique por email → null
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    // ensureUniqueUsername internamente llama findUnique para username → null
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.user.create).mockResolvedValue({
+      id: 'new-oauth', email: 'newuser@test.com', username: 'newuser',
+      role: 'FRONTEND', avatarUrl: null, description: null,
+      avgRating: 0, totalRatings: 0, createdAt: new Date(),
+    } as any)
+
+    const result = await syncOAuthUserSession({
+      id: 'new-oauth', email: 'newuser@test.com', userMetadata: {},
+    })
+
+    expect(result.id).toBe('new-oauth')
+    expect(prisma.user.create).toHaveBeenCalled()
+  })
+
+  it('lanza OAUTH_EMAIL_CONFLICT si el email ya pertenece a otro usuario', async () => {
+    // findUnique por id → null (no existe con ese id)
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(null)  // por id
+      .mockResolvedValueOnce({ id: 'otro-usuario' } as any)  // por email (conflicto)
+
+    await expect(
+      syncOAuthUserSession({ id: 'oauth-nuevo', email: 'conflict@test.com', userMetadata: {} })
+    ).rejects.toThrow('OAUTH_EMAIL_CONFLICT')
+  })
+
+  it('actualiza email y avatarUrl cuando el usuario ya existe pero ambos cambiaron', async () => {
+    const existingUser = {
+      id: 'oauth-1', email: 'old@test.com', username: 'oauthuser',
+      role: 'FRONTEND', avatarUrl: null, description: null,
+      avgRating: 0, totalRatings: 0, createdAt: new Date(),
+    }
+    const updatedUser = { ...existingUser, email: 'new@test.com', avatarUrl: 'http://avatar.com/pic.png' }
+
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(existingUser as any)  // findUnique por id — existe
+      .mockResolvedValueOnce(null)                  // findUnique por email — no hay conflicto
+
+    vi.mocked(prisma.user.update).mockResolvedValue(updatedUser as any)
+
+    const result = await syncOAuthUserSession({
+      id: 'oauth-1',
+      email: 'new@test.com',
+      userMetadata: { avatar_url: 'http://avatar.com/pic.png' },
+    })
+
+    expect(result.email).toBe('new@test.com')
+    expect(result.avatarUrl).toBe('http://avatar.com/pic.png')
+    expect(prisma.user.update).toHaveBeenCalled()
+  })
+
+  it('lanza OAUTH_EMAIL_CONFLICT cuando el email cambiado ya pertenece a otro (existingById)', async () => {
+    const existingUser = {
+      id: 'oauth-1', email: 'old@test.com', username: 'oauthuser',
+      role: 'FRONTEND', avatarUrl: null, description: null,
+      avgRating: 0, totalRatings: 0, createdAt: new Date(),
+    }
+
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(existingUser as any) // findUnique por id — existe
+      .mockResolvedValueOnce({ id: 'otro-id' } as any) // findUnique por email — conflicto
+
+    await expect(
+      syncOAuthUserSession({ id: 'oauth-1', email: 'conflict@test.com', userMetadata: {} })
+    ).rejects.toThrow('OAUTH_EMAIL_CONFLICT')
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// sendPasswordResetEmail
+// ─────────────────────────────────────────────────────────
+describe('sendPasswordResetEmail', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('llama a supabase.auth.resetPasswordForEmail y resuelve sin error', async () => {
+    const mockSupabase = {
+      auth: { resetPasswordForEmail: vi.fn().mockResolvedValue({ data: {}, error: null }) },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await expect(
+      sendPasswordResetEmail({ email: 'user@test.com' })
+    ).resolves.toBeUndefined()
+
+    expect(mockSupabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@test.com',
+      expect.objectContaining({ redirectTo: expect.any(String) })
+    )
+  })
+
+  it('normaliza el email en minúsculas antes de enviarlo', async () => {
+    const mockSupabase = {
+      auth: { resetPasswordForEmail: vi.fn().mockResolvedValue({ data: {}, error: null }) },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await sendPasswordResetEmail({ email: 'User@TEST.COM' })
+
+    expect(mockSupabase.auth.resetPasswordForEmail).toHaveBeenCalledWith(
+      'user@test.com',
+      expect.any(Object)
+    )
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// changeUserPassword
+// ─────────────────────────────────────────────────────────
+describe('changeUserPassword', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('lanza USER_NOT_FOUND si el usuario no existe en Prisma', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    await expect(
+      changeUserPassword('no-user', 'token', { currentPassword: 'old', newPassword: 'NewPass1!' })
+    ).rejects.toThrow('USER_NOT_FOUND')
+  })
+
+  it('lanza INVALID_CURRENT_PASSWORD si Supabase rechaza la re-autenticación', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ email: 'user@test.com' } as any)
+
+    const mockSupabase = {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({
+          data: { user: null, session: null },
+          error: { message: 'Invalid credentials' },
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    await expect(
+      changeUserPassword('user-1', 'token', { currentPassword: 'WrongOld!', newPassword: 'NewPass1!' })
+    ).rejects.toThrow('INVALID_CURRENT_PASSWORD')
+  })
+
+  it('lanza PASSWORD_UPDATE_FAILED si la actualización REST de Supabase falla', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ email: 'user@test.com' } as any)
+
+    const mockSupabase = {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({
+          data: { user: { id: 'u1' }, session: { access_token: 'fresh-tok' } },
+          error: null,
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    // fetch global retorna un response con ok=false
+    global.fetch = vi.fn().mockResolvedValue({ ok: false } as Response)
+
+    await expect(
+      changeUserPassword('user-1', 'token', { currentPassword: 'OldPass1!', newPassword: 'NewPass1!' })
+    ).rejects.toThrow('PASSWORD_UPDATE_FAILED')
+  })
+
+  it('resuelve sin error cuando todo va bien', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ email: 'user@test.com' } as any)
+
+    const mockSupabase = {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({
+          data: { user: { id: 'u1' }, session: { access_token: 'fresh-tok' } },
+          error: null,
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    global.fetch = vi.fn().mockResolvedValue({ ok: true } as Response)
+
+    await expect(
+      changeUserPassword('user-1', 'token', { currentPassword: 'OldPass1!', newPassword: 'NewPass1!' })
+    ).resolves.toBeUndefined()
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// updateUserProfile
+// ─────────────────────────────────────────────────────────
+describe('updateUserProfile', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('lanza USER_NOT_FOUND si el usuario no existe', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    await expect(
+      updateUserProfile('no-user', { description: 'test' })
+    ).rejects.toThrow('USER_NOT_FOUND')
+  })
+
+  it('lanza USERNAME_ALREADY_EXISTS si el username pertenece a otro usuario', async () => {
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce({ id: 'user-1' } as any)   // existe el usuario
+      .mockResolvedValueOnce({ id: 'otro-usuario' } as any) // username ya en uso
+
+    await expect(
+      updateUserProfile('user-1', { username: 'ocupado' })
+    ).rejects.toThrow('USERNAME_ALREADY_EXISTS')
+  })
+
+  it('lanza INVALID_TECHNOLOGIES si algún technologyId no existe', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1' } as any)
+    vi.mocked(prisma.technology.count).mockResolvedValue(0) // ninguno existe
+
+    await expect(
+      updateUserProfile('user-1', { technologyIds: ['uuid-no-existe-0000-000000000000'] })
+    ).rejects.toThrow('INVALID_TECHNOLOGIES')
+  })
+
+  it('actualiza el perfil y retorna el usuario actualizado exitosamente', async () => {
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce({ id: 'user-1' } as any)  // existe
+      .mockResolvedValueOnce({
+        id: 'user-1', email: 'u@test.com', username: 'updated',
+        role: 'BACKEND', avatarUrl: null, description: 'nueva desc',
+        avgRating: 0, totalRatings: 0, createdAt: new Date(),
+        technologies: [],
+      } as any)
+
+    const mockTx = {
+      user: { update: vi.fn().mockResolvedValue({} as any) },
+      userTechnology: {
+        deleteMany: vi.fn().mockResolvedValue({} as any),
+        createMany: vi.fn().mockResolvedValue({} as any),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx))
+
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ count: 0 }])
+
+    const result = await updateUserProfile('user-1', { description: 'nueva desc' })
+
+    expect(result.id).toBe('user-1')
+    expect(result.description).toBe('nueva desc')
+    expect(mockTx.user.update).toHaveBeenCalled()
+  })
+
+  it('actualiza role y avatarUrl, y reemplaza technologyIds', async () => {
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce({ id: 'user-1' } as any)  // usuario existe
+      .mockResolvedValueOnce({
+        id: 'user-1', email: 'u@test.com', username: 'testuser',
+        role: 'FRONTEND', avatarUrl: 'http://img.com/a.png', description: null,
+        avgRating: 0, totalRatings: 0, createdAt: new Date(),
+        technologies: [{ technology: { id: 'tech-1', name: 'Go', slug: 'go' } }],
+      } as any)
+
+    vi.mocked(prisma.technology.count).mockResolvedValue(1) // tech válido
+
+    const mockTx = {
+      user: { update: vi.fn().mockResolvedValue({} as any) },
+      userTechnology: {
+        deleteMany: vi.fn().mockResolvedValue({} as any),
+        createMany: vi.fn().mockResolvedValue({} as any),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx))
+
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ count: 0 }])
+
+    const result = await updateUserProfile('user-1', {
+      role: 'FRONTEND',
+      avatarUrl: 'http://img.com/a.png',
+      technologyIds: ['tech-1'],
+    })
+
+    expect(result.id).toBe('user-1')
+    expect(mockTx.userTechnology.deleteMany).toHaveBeenCalled()
+    expect(mockTx.userTechnology.createMany).toHaveBeenCalled()
+  })
+
+  it('no llama a user.update si no hay campos escalares a cambiar (solo technologyIds)', async () => {
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce({ id: 'user-1' } as any)
+      .mockResolvedValueOnce({
+        id: 'user-1', email: 'u@test.com', username: 'testuser',
+        role: 'BACKEND', avatarUrl: null, description: null,
+        avgRating: 0, totalRatings: 0, createdAt: new Date(),
+        technologies: [],
+      } as any)
+
+    vi.mocked(prisma.technology.count).mockResolvedValue(0) // technologyIds vacío → count=0 pero validación OK
+
+    const mockTx = {
+      user: { update: vi.fn().mockResolvedValue({} as any) },
+      userTechnology: {
+        deleteMany: vi.fn().mockResolvedValue({} as any),
+        createMany: vi.fn().mockResolvedValue({} as any),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx))
+
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ count: 0 }])
+
+    // technologyIds vacío es válido (limpia las tecnologías del usuario)
+    const result = await updateUserProfile('user-1', { technologyIds: [] })
+
+    expect(result.id).toBe('user-1')
+    // user.update no debería llamarse porque no hay campos escalares
+    expect(mockTx.user.update).not.toHaveBeenCalled()
+    // deleteMany sí se llama para limpiar las tecnologías
+    expect(mockTx.userTechnology.deleteMany).toHaveBeenCalled()
+    // createMany NO se llama porque la lista está vacía
+    expect(mockTx.userTechnology.createMany).not.toHaveBeenCalled()
   })
 })
