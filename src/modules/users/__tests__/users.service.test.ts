@@ -84,7 +84,9 @@ describe('getUserById', () => {
 
     vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUser as any)
     // getUserStats usa $queryRaw internamente
-    vi.mocked(prisma.$queryRaw).mockResolvedValue([{ count: 5 }])
+    vi.mocked(prisma.$queryRaw)
+      .mockResolvedValueOnce([{ count: 3 }])  // comments
+      .mockResolvedValueOnce([{ count: 7 }])  // solutions
 
     const result = await getUserById('user-123')
 
@@ -93,6 +95,8 @@ describe('getUserById', () => {
     expect(result?.username).toBe('testuser')
     expect(result?.technologies).toHaveLength(1)
     expect(result?.technologies[0].name).toBe('TypeScript')
+    expect(result?.commentsCount).toBe(3)
+    expect(result?.solutionsCount).toBe(7)
   })
 
   it('retorna el usuario con stats en cero si $queryRaw falla (fallback)', async () => {
@@ -144,24 +148,39 @@ describe('rateUser', () => {
   it('retorna avgRating y totalRatings después de una calificación exitosa', async () => {
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'target-1' } as any)
 
-    // Simular la transacción: ejecutar el callback con el mismo prisma mockeado
-    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(prisma))
-    vi.mocked(prisma.userRating.upsert).mockResolvedValue({} as any)
-    vi.mocked(prisma.userRating.aggregate).mockResolvedValue({
-      _avg: { score: 4.5 },
-      _count: { score: 8 },
-    } as any)
-    vi.mocked(prisma.user.update).mockResolvedValue({} as any)
+    // tx aislado para verificar que las ops van por él, no por prisma global
+    const mockTx = {
+      userRating: {
+        upsert: vi.fn().mockResolvedValue({} as any),
+        aggregate: vi.fn().mockResolvedValue({
+          _avg: { score: 4.5 },
+          _count: { score: 8 },
+        } as any),
+      },
+      user: {
+        update: vi.fn().mockResolvedValue({} as any),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn: any) => fn(mockTx))
 
     const result = await rateUser('rater-1', 'target-1', { score: 5 })
 
     expect(result.avgRating).toBe(4.5)
     expect(result.totalRatings).toBe(8)
-    expect(prisma.userRating.upsert).toHaveBeenCalledWith(
+    expect(mockTx.userRating.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { raterId_targetUserId: { raterId: 'rater-1', targetUserId: 'target-1' } },
         create: expect.objectContaining({ score: 5 }),
       })
     )
+    expect(mockTx.userRating.aggregate).toHaveBeenCalled()
+    expect(mockTx.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'target-1' },
+        data: { avgRating: 4.5, totalRatings: 8 },
+      })
+    )
+    // Confirmar que prisma global NUNCA fue llamado para ops de transacción
+    expect(prisma.userRating.upsert).not.toHaveBeenCalled()
   })
 })
