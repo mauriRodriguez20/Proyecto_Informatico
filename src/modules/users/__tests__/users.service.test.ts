@@ -184,3 +184,148 @@ describe('rateUser', () => {
     expect(prisma.userRating.upsert).not.toHaveBeenCalled()
   })
 })
+
+// ─────────────────────────────────────────────────────────
+// registerUser
+// ─────────────────────────────────────────────────────────
+describe('registerUser', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('lanza EMAIL_ALREADY_EXISTS si el email ya está registrado en Prisma', async () => {
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({ id: 'existing' } as any)
+
+    await expect(
+      registerUser({ email: 'dup@test.com', username: 'nuevo', password: 'Pass1234!', role: 'BACKEND' })
+    ).rejects.toThrow('EMAIL_ALREADY_EXISTS')
+  })
+
+  it('lanza USERNAME_ALREADY_EXISTS si el username ya está en uso', async () => {
+    // Primer findUnique (email) → null, segundo (username) → existe
+    vi.mocked(prisma.user.findUnique)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'existing-user' } as any)
+
+    await expect(
+      registerUser({ email: 'nuevo@test.com', username: 'duplicado', password: 'Pass1234!', role: 'BACKEND' })
+    ).rejects.toThrow('USERNAME_ALREADY_EXISTS')
+  })
+
+  it('registra el usuario exitosamente y retorna user + accessToken', async () => {
+    // Prisma: email libre, username libre
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    // Supabase signUp exitoso
+    const mockSupabase = {
+      auth: {
+        signUp: vi.fn().mockResolvedValue({
+          data: {
+            user: { id: 'new-user-id' },
+            session: { access_token: 'token-abc' },
+          },
+          error: null,
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+
+    // Prisma create retorna el usuario nuevo
+    vi.mocked(prisma.user.create).mockResolvedValue({
+      id: 'new-user-id',
+      email: 'new@test.com',
+      username: 'newuser',
+      role: 'BACKEND',
+      avatarUrl: null,
+      description: null,
+      avgRating: 0,
+      totalRatings: 0,
+      createdAt: new Date(),
+    } as any)
+
+    const result = await registerUser({
+      email: 'new@test.com',
+      username: 'newuser',
+      password: 'Pass1234!',
+      role: 'BACKEND',
+    })
+
+    expect(result.user.id).toBe('new-user-id')
+    expect(result.accessToken).toBe('token-abc')
+  })
+})
+
+// ─────────────────────────────────────────────────────────
+// loginUser
+// ─────────────────────────────────────────────────────────
+describe('loginUser', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('lanza TOO_MANY_ATTEMPTS si la cuenta está bloqueada', async () => {
+    // loginAttempt con lockedUntil en el futuro
+    const lockedUntil = new Date(Date.now() + 10 * 60 * 1000)
+    vi.mocked(prisma.loginAttempt.findUnique).mockResolvedValue({
+      email: 'locked@test.com',
+      failedCount: 5,
+      lockedUntil,
+      lastFailedAt: new Date(),
+    } as any)
+
+    await expect(
+      loginUser({ email: 'locked@test.com', password: 'cualquiera' })
+    ).rejects.toThrow(/TOO_MANY_ATTEMPTS/)
+  })
+
+  it('lanza INVALID_CREDENTIALS si Supabase rechaza las credenciales', async () => {
+    // Sin bloqueo
+    vi.mocked(prisma.loginAttempt.findUnique).mockResolvedValue(null)
+
+    const mockSupabase = {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({
+          data: { user: null, session: null },
+          error: { message: 'Invalid login credentials' },
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+    vi.mocked(prisma.loginAttempt.create).mockResolvedValue({} as any)
+    vi.mocked(prisma.loginAttempt.findUnique).mockResolvedValue(null)
+
+    await expect(
+      loginUser({ email: 'wrong@test.com', password: 'wrongpass' })
+    ).rejects.toThrow('INVALID_CREDENTIALS')
+  })
+
+  it('retorna user y accessToken en un login exitoso', async () => {
+    vi.mocked(prisma.loginAttempt.findUnique).mockResolvedValue(null)
+
+    const mockSupabase = {
+      auth: {
+        signInWithPassword: vi.fn().mockResolvedValue({
+          data: {
+            user: { id: 'user-ok' },
+            session: { access_token: 'jwt-token' },
+          },
+          error: null,
+        }),
+      },
+    }
+    vi.mocked(createSupabaseServerClient).mockResolvedValue(mockSupabase as any)
+    vi.mocked(prisma.loginAttempt.deleteMany).mockResolvedValue({ count: 0 } as any)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: 'user-ok',
+      email: 'ok@test.com',
+      username: 'okuser',
+      role: 'BACKEND',
+      avatarUrl: null,
+      description: null,
+      avgRating: 0,
+      totalRatings: 0,
+      createdAt: new Date(),
+    } as any)
+
+    const result = await loginUser({ email: 'ok@test.com', password: 'CorrectPass!' })
+
+    expect(result.user.id).toBe('user-ok')
+    expect(result.accessToken).toBe('jwt-token')
+  })
+})
