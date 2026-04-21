@@ -9,10 +9,6 @@ on:
     branches:
       - 'Backend_MS04'
 
-defaults:
-  run:
-    working-directory: MS-04(InteraccionesyReputacion)
-
 jobs:
   unit-tests:
     name: Unit Tests
@@ -26,7 +22,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -41,7 +37,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-ms04
-          path: MS-04(InteraccionesyReputacion)/coverage/
+          path: coverage/
 
   full-ci:
     name: Lint & Build
@@ -57,7 +53,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
