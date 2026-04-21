@@ -13,3 +13,6 @@ npm-debug.log*
 
 # Cobertura de pruebas (artefacto generado)
 coverage/
+
+# Caché de compilación incremental de TypeScript (artefacto generado)
+tsconfig.tsbuildinfo
