@@ -180,3 +180,5 @@ describe('POST /api/publications', () => {
     expect((await res.json()).error).toContain('5 etiquetas')
   })
 })
+
+//demo pipeline ms02
