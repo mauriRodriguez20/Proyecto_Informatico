@@ -75,8 +75,6 @@ describe('POST /api/publications', () => {
   it('retorna 401 si no hay token de autenticación', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: null,
-      authUser: null,
-      bearerToken: null,
       errorResponse: Response.json({ error: 'No autorizado.' }, { status: 401 }) as any,
     })
 
@@ -92,8 +90,6 @@ describe('POST /api/publications', () => {
   it('retorna 400 si el body no pasa la validación Zod', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
 
@@ -111,8 +107,6 @@ describe('POST /api/publications', () => {
   it('retorna 201 cuando la publicación se crea exitosamente', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(createPublication).mockResolvedValue(mockPublication as any)
@@ -140,8 +134,6 @@ describe('POST /api/publications', () => {
   it('retorna 502 si lanza TECHNOLOGY_UPSERT_FAILED', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(createPublication).mockRejectedValue(new Error('TECHNOLOGY_UPSERT_FAILED'))
@@ -166,8 +158,6 @@ describe('POST /api/publications', () => {
   it('retorna 400 si el servicio lanza TOO_MANY_TAGS', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(createPublication).mockRejectedValue(new Error('TOO_MANY_TAGS'))

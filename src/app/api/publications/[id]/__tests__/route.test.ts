@@ -75,8 +75,6 @@ describe('PATCH /api/publications/[id]', () => {
   it('retorna 401 si no hay token', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: null,
-      authUser: null,
-      bearerToken: null,
       errorResponse: Response.json({ error: 'No autorizado.' }, { status: 401 }) as any,
     })
 
@@ -92,8 +90,6 @@ describe('PATCH /api/publications/[id]', () => {
   it('retorna 404 si la publicación no existe', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(getPublicationById).mockResolvedValue(null)
@@ -111,8 +107,6 @@ describe('PATCH /api/publications/[id]', () => {
   it('retorna 403 si el usuario no es el autor', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'otro-user',
-      authUser: { id: 'otro-user', email: 'otro@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(getPublicationById).mockResolvedValue(mockPublication as any)
@@ -130,8 +124,6 @@ describe('PATCH /api/publications/[id]', () => {
   it('retorna 200 cuando la actualización es exitosa', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(getPublicationById).mockResolvedValue(mockPublication as any)
@@ -159,8 +151,6 @@ describe('DELETE /api/publications/[id]', () => {
   it('retorna 401 si no hay token', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: null,
-      authUser: null,
-      bearerToken: null,
       errorResponse: Response.json({ error: 'No autorizado.' }, { status: 401 }) as any,
     })
 
@@ -175,8 +165,6 @@ describe('DELETE /api/publications/[id]', () => {
   it('retorna 403 si el usuario no es el autor', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'otro-user',
-      authUser: { id: 'otro-user', email: 'otro@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(getPublicationById).mockResolvedValue(mockPublication as any)
@@ -193,8 +181,6 @@ describe('DELETE /api/publications/[id]', () => {
   it('retorna 200 cuando la eliminación es exitosa', async () => {
     vi.mocked(withAuth).mockResolvedValue({
       userId: 'user-1',
-      authUser: { id: 'user-1', email: 'test@test.com', userMetadata: null },
-      bearerToken: 'token-abc',
       errorResponse: null,
     })
     vi.mocked(getPublicationById).mockResolvedValue(mockPublication as any)
