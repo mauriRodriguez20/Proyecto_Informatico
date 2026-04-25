@@ -177,7 +177,7 @@ export default function AnswerCard({ answer, questionId, isQuestionAuthor, onUpd
                 )}
 
                 <div className={styles.footer}>
-                    <Link href={`/dashboard/profile/${answer.authorId}`} className={styles.authorInfoLink}>
+                    <Link href={`/profile/${answer.authorId}`} className={styles.authorInfoLink}>
                         <div className={styles.authorInfo}>
                             <div className={styles.avatar}>
                                 {answer.author?.avatarUrl ? (

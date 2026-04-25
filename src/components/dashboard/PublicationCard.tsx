@@ -79,7 +79,7 @@ export default function PublicationCard({ publication, onDelete, onUpdate }: Pub
         <article className={styles.card}>
             <header className={styles.header}>
                 <div className={styles.authorInfo}>
-                    <Link href={`/dashboard/profile/${authorId}`} className={styles.authorLink}>
+                    <Link href={`/profile/${authorId}`} className={styles.authorLink}>
                         <div className={styles.avatar}>
                             {publication.author?.avatarUrl ? (
                                 <img src={publication.author.avatarUrl} alt={authorName} />

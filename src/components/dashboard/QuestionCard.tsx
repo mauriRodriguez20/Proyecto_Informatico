@@ -26,7 +26,7 @@ export default function QuestionCard({ question }: QuestionCardProps) {
         <article className={styles.card}>
             <header className={styles.header}>
                 <div className={styles.authorInfo}>
-                    <Link href={`/dashboard/profile/${question.authorId}`} className={styles.authorLink}>
+                    <Link href={`/profile/${question.authorId}`} className={styles.authorLink}>
                         <div className={styles.avatar}>
                             {author?.avatarUrl ? (
                                 <img src={author.avatarUrl} alt={authorName} />

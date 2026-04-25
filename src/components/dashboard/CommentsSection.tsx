@@ -86,7 +86,7 @@ function CommentItem({
     });
     const authorName = comment.author?.username || 'Anonymous';
     const authorId = comment.author?.id;
-    const profileHref = authorId ? `/dashboard/profile/${authorId}` : null;
+    const profileHref = authorId ? `/profile/${authorId}` : null;
 
     return (
         <div className={styles.commentItem}>

@@ -114,7 +114,7 @@ export default function QuestionDetailPage() {
 
                     <h1 className={styles.title}>{question.title}</h1>
 
-                    <Link href={`/dashboard/profile/${question.authorId}`} className={styles.authorCardLink}>
+                    <Link href={`/profile/${question.authorId}`} className={styles.authorCardLink}>
                         <div className={styles.authorCard}>
                             <div className={styles.authorAvatar}>
                                 {question.author?.avatarUrl ? (
