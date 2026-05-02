@@ -47,6 +47,7 @@ model Comment {
   updatedAt   DateTime @updatedAt
 
   @@index([targetType, targetId])
+  @@index([targetType, targetId, createdAt])
   @@index([createdAt])
   @@index([authorId])
   @@map("comments")

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { fetchWithKeepAlive } from "@/lib/http-client";
 import {
   CommentTargetType,
   NotificationEntityType,
@@ -75,28 +76,82 @@ function ratingLabel(totalRatings: number): string {
   return totalRatings > 0 ? "Calificado" : "Sin calificaciones";
 }
 
-async function fetchAuthor(userId: string): Promise<AuthorSnapshot | null> {
-  if (!process.env.MS01_URL) return null;
+interface BatchAuthorResponse {
+  users?: Array<{
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    role: string;
+  }>;
+}
+
+const AUTHOR_CACHE_TTL_MS = 60_000;
+const AUTHOR_MISS_CACHE_TTL_MS = 10_000;
+const authorSnapshotCache = new Map<
+  string,
+  { value: AuthorSnapshot | null; expiresAt: number }
+>();
+
+async function fetchAuthorsBatch(
+  userIds: string[]
+): Promise<Map<string, AuthorSnapshot | null>> {
+  const uniqueIds = Array.from(new Set(userIds)).filter(Boolean);
+  const result = new Map<string, AuthorSnapshot | null>();
+  const missingIds: string[] = [];
+  const now = Date.now();
+
+  uniqueIds.forEach((id) => {
+    const cached = authorSnapshotCache.get(id);
+    if (cached && cached.expiresAt > now) {
+      result.set(id, cached.value);
+      return;
+    }
+    result.set(id, null);
+    missingIds.push(id);
+  });
+
+  if (uniqueIds.length === 0) return result;
+  if (missingIds.length === 0) return result;
+  if (!process.env.MS01_URL) return result;
 
   try {
-    const response = await fetch(`${process.env.MS01_URL}/api/users/${userId}`, {
+    const query = encodeURIComponent(missingIds.join(","));
+    const response = await fetchWithKeepAlive(`${process.env.MS01_URL}/api/users/batch?ids=${query}`, {
       cache: "no-store",
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return result;
 
-    const payload = await response.json();
-    const user = payload.user;
-    if (!user) return null;
+    const payload = (await response.json()) as BatchAuthorResponse;
+    const users = Array.isArray(payload.users) ? payload.users : [];
 
-    return {
-      id: user.id,
-      username: user.username ?? "usuario",
-      avatarUrl: user.avatarUrl ?? null,
-      role: user.role ?? "UNKNOWN",
-    };
+    const returnedIds = new Set<string>();
+    users.forEach((user) => {
+      const value: AuthorSnapshot = {
+        id: user.id,
+        username: user.username ?? "usuario",
+        avatarUrl: user.avatarUrl ?? null,
+        role: user.role ?? "UNKNOWN",
+      };
+      result.set(user.id, value);
+      returnedIds.add(user.id);
+      authorSnapshotCache.set(user.id, {
+        value,
+        expiresAt: now + AUTHOR_CACHE_TTL_MS,
+      });
+    });
+
+    missingIds.forEach((id) => {
+      if (returnedIds.has(id)) return;
+      authorSnapshotCache.set(id, {
+        value: null,
+        expiresAt: now + AUTHOR_MISS_CACHE_TTL_MS,
+      });
+    });
+
+    return result;
   } catch {
-    return null;
+    return result;
   }
 }
 
@@ -104,14 +159,7 @@ async function attachCommentAuthors(comments: CommentItem[]): Promise<CommentIte
   if (comments.length === 0) return comments;
 
   const authorIds = Array.from(new Set(comments.map((comment) => comment.authorId)));
-  const authorEntries = await Promise.all(
-    authorIds.map(async (authorId) => {
-      const author = await fetchAuthor(authorId);
-      return [authorId, author] as const;
-    })
-  );
-
-  const authorMap = new Map(authorEntries);
+  const authorMap = await fetchAuthorsBatch(authorIds);
   return comments.map((comment) => ({
     ...comment,
     author: authorMap.get(comment.authorId) ?? null,
@@ -976,3 +1024,6 @@ export async function markAllNotificationsAsRead(userId: string): Promise<MarkAl
 
   return { updatedCount: result.count };
 }
+
+
+
