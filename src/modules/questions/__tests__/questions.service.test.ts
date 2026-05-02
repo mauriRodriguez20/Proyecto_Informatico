@@ -26,7 +26,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/http-client', () => ({
+  fetchWithKeepAlive: vi.fn(),
+}))
+
 import { prisma } from '@/lib/prisma'
+import { fetchWithKeepAlive } from '@/lib/http-client'
 import {
   createQuestion,
   listQuestions,
@@ -38,8 +43,7 @@ import {
   voteAnswer,
 } from '@/modules/questions/questions.service'
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+const mockFetch = vi.mocked(fetchWithKeepAlive)
 
 // ─── Datos base ───────────────────────────────────────────────────────────────
 
@@ -83,13 +87,15 @@ const baseAnswer = {
 }
 
 const mockAuthorResponse = {
-  user: {
-    id: AUTHOR_ID,
-    username: 'testuser',
-    avatarUrl: null,
-    role: 'USER',
-    avgRating: 4.0,
-  },
+  users: [
+    {
+      id: AUTHOR_ID,
+      username: 'testuser',
+      avatarUrl: null,
+      role: 'USER',
+      avgRating: 4.0,
+    },
+  ],
 }
 
 beforeEach(() => {
@@ -196,7 +202,10 @@ describe('getQuestionById', () => {
   })
 
   it('retorna pregunta con author null si el fetch al MS-01 falla', async () => {
-    vi.mocked(prisma.question.findUnique).mockResolvedValue(baseQuestion as any)
+    vi.mocked(prisma.question.findUnique).mockResolvedValue({
+      ...baseQuestion,
+      authorId: 'author-unreachable-test-1',
+    } as any)
     mockFetch.mockResolvedValue({ ok: false, status: 503 } as Response)
 
     const result = await getQuestionById(QUESTION_ID)
