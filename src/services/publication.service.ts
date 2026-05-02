@@ -21,23 +21,6 @@ function toNumberOrUndefined(value: unknown): number | undefined {
     return undefined;
 }
 
-async function fetchPublicationCommentsTotal(publicationId: string): Promise<number | null> {
-    try {
-        const response = await apiRequest<{ total?: number } | any>(
-            BASE_URL_MS04,
-            `/api/publications/${publicationId}/comments?page=1&limit=1`,
-            {
-                cache: 'no-store',
-            }
-        );
-
-        const total = Number((response as { total?: number })?.total);
-        return Number.isFinite(total) ? total : 0;
-    } catch {
-        return null;
-    }
-}
-
 function normalizePublication(raw: any): Publication {
     const authorRating =
         toNumberOrUndefined(raw?.author?.rating) ??
@@ -49,7 +32,7 @@ function normalizePublication(raw: any): Publication {
             id: raw.author.id ?? raw.authorId,
             username: raw.author.username ?? raw.author.name ?? `User ${(raw.authorId || '').slice(0, 5)}`,
             avatarUrl: raw.author.avatarUrl ?? undefined,
-            avgRating: authorRating,
+            rating: authorRating,
             role: raw.author.role ?? 'Developer',
         }
         : undefined;
@@ -99,22 +82,9 @@ export const publicationService = {
             }
         );
 
-        const publications = (response.data || []).map(normalizePublication);
-        const commentsTotals = await Promise.all(
-            publications.map((publication) => fetchPublicationCommentsTotal(publication.id))
-        );
-
-        const data = publications.map((publication, index) => {
-            const total = commentsTotals[index];
-            return {
-                ...publication,
-                commentsCount: total === null ? publication.commentsCount : total,
-            };
-        });
-
         return {
             total: response.total,
-            data,
+            data: (response.data || []).map(normalizePublication),
         };
     },
 
@@ -131,14 +101,7 @@ export const publicationService = {
             }
         );
         const publication = response.publication ?? response;
-        const normalized = normalizePublication(publication);
-        const commentsTotal = await fetchPublicationCommentsTotal(normalized.id);
-        if (commentsTotal === null) return normalized;
-
-        return {
-            ...normalized,
-            commentsCount: commentsTotal,
-        };
+        return normalizePublication(publication);
     },
 
     /**

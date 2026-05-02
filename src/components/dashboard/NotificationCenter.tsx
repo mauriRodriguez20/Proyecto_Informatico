@@ -83,6 +83,8 @@ export default function NotificationCenter() {
     }, []);
 
     useEffect(() => {
+        if (isOpen) return;
+
         void loadUnreadCount();
 
         const intervalId = window.setInterval(() => {
@@ -90,7 +92,7 @@ export default function NotificationCenter() {
         }, POLLING_INTERVAL_MS);
 
         return () => window.clearInterval(intervalId);
-    }, [loadUnreadCount]);
+    }, [isOpen, loadUnreadCount]);
 
     useEffect(() => {
         if (!isOpen) return;

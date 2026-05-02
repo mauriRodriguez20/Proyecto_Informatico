@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
@@ -22,7 +22,7 @@ export default function QuestionDetailPage() {
     const [answerCode, setAnswerCode] = useState('');
     const [answerLang, setAnswerLang] = useState('');
 
-    const loadData = async () => {
+    const loadData = useCallback(async () => {
         if (!id) return;
         try {
             const result = await questionsService.getQuestionById(id as string);
@@ -32,7 +32,7 @@ export default function QuestionDetailPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         loadData();
@@ -41,12 +41,20 @@ export default function QuestionDetailPage() {
     useEffect(() => {
         if (!id) return;
 
-        const intervalId = window.setInterval(() => {
-            void loadData();
-        }, 12000);
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') {
+                void loadData();
+            }
+        };
 
-        return () => window.clearInterval(intervalId);
-    }, [id]);
+        window.addEventListener('focus', refreshWhenVisible);
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+
+        return () => {
+            window.removeEventListener('focus', refreshWhenVisible);
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
+        };
+    }, [id, loadData]);
 
     const handleAnswerSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -149,7 +157,7 @@ export default function QuestionDetailPage() {
                         <CommentsSection
                             id={question.id}
                             type="QUESTION"
-                            comments={[]} // Backend doesn't return them yet, so empty list
+                            comments={[]} 
                         />
                     </div>
                 </article>
@@ -214,3 +222,4 @@ export default function QuestionDetailPage() {
         </DashboardLayout>
     );
 }
+

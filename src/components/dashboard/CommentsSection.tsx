@@ -10,7 +10,7 @@ import styles from './CommentsSection.module.css';
 
 const MAX_CHARS = 500;
 const COMMENTS_FETCH_LIMIT = 50;
-const COMMENTS_POLL_MS = 10000;
+const COMMENTS_POLL_MS = 15000;
 
 interface CommentsSectionProps {
     id: string;
@@ -168,6 +168,7 @@ export default function CommentsSection({
     const onCommentsSyncedRef = useRef<typeof onCommentsSynced>(onCommentsSynced);
     const commentsRef = useRef<Comment[]>(initialComments);
     const lastSyncedCountRef = useRef<number>(initialCommentsCount);
+    const syncInFlightRef = useRef<Promise<void> | null>(null);
 
     const service = type === 'PUBLICATION' ? publicationService : questionsService;
 
@@ -202,32 +203,39 @@ export default function CommentsSection({
             | undefined;
 
         if (typeof getComments !== 'function') return;
+        if (syncInFlightRef.current && !showLoading) return;
 
         if (showLoading) {
             setIsSyncingComments(true);
         }
 
-        try {
-            const fetchedComments = await getComments(resourceId, 1, COMMENTS_FETCH_LIMIT);
-            if (Array.isArray(fetchedComments)) {
-                if (areCommentsDifferent(commentsRef.current, fetchedComments)) {
-                    setComments(fetchedComments);
-                    commentsRef.current = fetchedComments;
-                }
+        const run = (async () => {
+            try {
+                const fetchedComments = await getComments(resourceId, 1, COMMENTS_FETCH_LIMIT);
+                if (Array.isArray(fetchedComments)) {
+                    if (areCommentsDifferent(commentsRef.current, fetchedComments)) {
+                        setComments(fetchedComments);
+                        commentsRef.current = fetchedComments;
+                    }
 
-                if (lastSyncedCountRef.current !== fetchedComments.length) {
-                    lastSyncedCountRef.current = fetchedComments.length;
-                    onCommentsSyncedRef.current?.(fetchedComments.length);
+                    if (lastSyncedCountRef.current !== fetchedComments.length) {
+                        lastSyncedCountRef.current = fetchedComments.length;
+                        onCommentsSyncedRef.current?.(fetchedComments.length);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to sync comments:', error);
+            } finally {
+                hasCompletedInitialSyncRef.current = true;
+                syncInFlightRef.current = null;
+                if (showLoading) {
+                    setIsSyncingComments(false);
                 }
             }
-        } catch (error) {
-            console.error('Failed to sync comments:', error);
-        } finally {
-            hasCompletedInitialSyncRef.current = true;
-            if (showLoading) {
-                setIsSyncingComments(false);
-            }
-        }
+        })();
+
+        syncInFlightRef.current = run;
+        await run;
     }, [resourceId, service]);
 
     useEffect(() => {
@@ -247,10 +255,26 @@ export default function CommentsSection({
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
+            if (document.visibilityState !== 'visible') return;
             void syncComments(false);
         }, COMMENTS_POLL_MS);
 
         return () => window.clearInterval(intervalId);
+    }, [syncComments]);
+
+    useEffect(() => {
+        const handleVisibilityOrFocus = () => {
+            if (document.visibilityState !== 'visible') return;
+            void syncComments(false);
+        };
+
+        window.addEventListener('focus', handleVisibilityOrFocus);
+        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+        return () => {
+            window.removeEventListener('focus', handleVisibilityOrFocus);
+            document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+        };
     }, [syncComments]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -418,3 +442,4 @@ export default function CommentsSection({
         </div>
     );
 }
+
