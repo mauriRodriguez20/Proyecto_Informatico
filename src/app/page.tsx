@@ -21,6 +21,16 @@ export default function Home() {
         }
     }, []);
 
+    useEffect(() => {
+        if (!isLoading && user) {
+            router.replace('/dashboard');
+        }
+    }, [isLoading, user, router]);
+
+    if (!isLoading && user) {
+        return null;
+    }
+
     return (
         <main>
             <Hero

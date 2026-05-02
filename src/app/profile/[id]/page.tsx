@@ -107,6 +107,7 @@ export default function PublicProfilePage() {
     }, [profileId]);
 
     const isOwnProfile = !!(user && profile && user.id === profile.id);
+    const brandHref = user ? '/dashboard' : '/';
     const technologies = useMemo(() => getTechnologyNames(profile), [profile]);
 
     const avgRating = Number(stats?.avgRating ?? profile?.avgRating ?? 0);
@@ -118,7 +119,7 @@ export default function PublicProfilePage() {
     return (
         <main className={styles.page}>
             <div className={styles.topBar}>
-                <Link href="/" className={styles.brandLink}>
+                <Link href={brandHref} className={styles.brandLink}>
                     DevPortal
                 </Link>
                 <div className={styles.topActions}>
@@ -147,8 +148,8 @@ export default function PublicProfilePage() {
                 <div className={styles.stateCard}>
                     <h2>Profile not available</h2>
                     <p>{error || 'We could not find this user profile.'}</p>
-                    <Link href="/" className={styles.actionLinkPrimary}>
-                        Back to home
+                    <Link href={brandHref} className={styles.actionLinkPrimary}>
+                        {user ? 'Back to dashboard' : 'Back to home'}
                     </Link>
                 </div>
             ) : (
