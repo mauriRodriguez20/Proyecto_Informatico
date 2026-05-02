@@ -14,7 +14,12 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+vi.mock('@/lib/http-client', () => ({
+  fetchWithKeepAlive: vi.fn(),
+}))
+
 import { prisma } from '@/lib/prisma'
+import { fetchWithKeepAlive } from '@/lib/http-client'
 import {
   createPublication,
   getPublicationById,
@@ -23,8 +28,7 @@ import {
   listPublications,
 } from '@/modules/publications/publications.service'
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+const mockFetch = vi.mocked(fetchWithKeepAlive)
 
 const basePublication = {
   id: 'pub-1',
@@ -45,14 +49,15 @@ const basePublication = {
 }
 
 const mockAuthorResponse = {
-  user: {
-    id: 'author-1',
-    username: 'testuser',
-    name: 'Test User',
-    avatarUrl: null,
-    role: 'USER',
-    avgRating: 4.0,
-  },
+  users: [
+    {
+      id: 'author-1',
+      username: 'testuser',
+      avatarUrl: null,
+      role: 'USER',
+      avgRating: 4.0,
+    },
+  ],
 }
 
 beforeEach(() => {
@@ -155,7 +160,10 @@ describe('getPublicationById', () => {
   })
 
   it('retorna publicación con author null si el fetch al MS-01 falla', async () => {
-    vi.mocked(prisma.publication.findUnique).mockResolvedValue(basePublication as any)
+    vi.mocked(prisma.publication.findUnique).mockResolvedValue({
+      ...basePublication,
+      authorId: 'author-unreachable-test-1',
+    } as any)
     mockFetch.mockResolvedValue({ ok: false, status: 503 } as Response)
 
     const result = await getPublicationById('pub-1')
