@@ -1,5 +1,26 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
+vi.mock('@prisma/client', () => ({
+  CommentTargetType: {
+    PUBLICATION: 'PUBLICATION',
+    QUESTION: 'QUESTION',
+  },
+  RatingTargetType: {
+    PUBLICATION: 'PUBLICATION',
+    ANSWER: 'ANSWER',
+  },
+  NotificationType: {
+    ANSWER_ACCEPTED: 'ANSWER_ACCEPTED',
+  },
+  NotificationEntityType: {
+    QUESTION: 'QUESTION',
+    ANSWER: 'ANSWER',
+  },
+  Prisma: {
+    sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
+  },
+}))
+
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     comment: {
@@ -29,8 +50,12 @@ vi.mock('@/lib/prisma', () => ({
     $executeRaw: vi.fn(),
   },
 }))
+vi.mock('@/lib/http-client', () => ({
+  fetchWithKeepAlive: vi.fn(),
+}))
 
 import { prisma } from '@/lib/prisma'
+import { fetchWithKeepAlive } from '@/lib/http-client'
 import {
   listPublicationComments,
   createPublicationComment,
@@ -58,8 +83,7 @@ const AUTHOR_ID   = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee'
 const COMMENT_ID  = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
 const NOTIF_ID    = '11111111-1111-1111-1111-111111111111'
 
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
+const mockFetch = vi.mocked(fetchWithKeepAlive)
 
 const mockComment = {
   id: COMMENT_ID,
@@ -118,7 +142,12 @@ describe('listPublicationComments', () => {
     vi.mocked(prisma.$queryRaw as any).mockResolvedValueOnce([{ id: PUB_ID, authorId: AUTHOR_ID }])
     vi.mocked(prisma.comment.findMany).mockResolvedValue([mockComment] as any)
     vi.mocked(prisma.comment.count).mockResolvedValue(1)
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ user: { id: USER_ID, username: 'test', avatarUrl: null, role: 'USER' } }) })
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        users: [{ id: USER_ID, username: 'test', avatarUrl: null, role: 'USER' }],
+      }),
+    } as any)
 
     const result = await listPublicationComments(PUB_ID, { page: 1, limit: 10 })
 
