@@ -1,4 +1,4 @@
-{
+﻿{
     "name":  "backend-proyecto",
     "version":  "1.0.0",
     "private":  true,
@@ -8,7 +8,7 @@
                     "start":  "next start -p 3004",
                     "test":  "vitest run",
                     "test:coverage":  "vitest run --coverage",
-                    "lint":  "next lint",
+                    "lint":  "eslint .",
                     "db:push":  "prisma db push",
                     "db:generate":  "prisma generate",
                     "db:studio":  "prisma studio",
@@ -38,3 +38,4 @@
                             "vitest":  "^3.2.4"
                         }
 }
+
