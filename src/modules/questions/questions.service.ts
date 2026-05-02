@@ -5,6 +5,7 @@ import type {
   AuthorSnapshot,
   CreateAnswerInput,
   CreateQuestionInput,
+  DeleteAnswerResult,
   ListQuestionsQuery,
   PaginatedQuestionsResponse,
   QuestionItem,
@@ -27,6 +28,17 @@ function sanitizeOptionalCodeBlock(value?: string | null): string | null | undef
 
   const sanitized = sanitizeCodeBlock(value);
   return sanitized.length > 0 ? sanitized : null;
+}
+
+function resolveUserVote(
+  votes: Array<{ voterId: string; value: number }> | undefined,
+  viewerId?: string | null
+): VoteValue | 0 {
+  if (!viewerId || !votes?.length) return 0;
+  const vote = votes.find((item) => item.voterId === viewerId);
+  if (vote?.value === 1) return 1;
+  if (vote?.value === -1) return -1;
+  return 0;
 }
 
 interface BatchAuthorResponse {
@@ -124,7 +136,10 @@ async function assertTechnologyIdsExist(technologyIds: string[]): Promise<void> 
   }
 }
 
-async function attachAuthors(question: QuestionItem): Promise<QuestionItem> {
+async function attachAuthors(
+  question: QuestionItem,
+  viewerId?: string | null
+): Promise<QuestionItem> {
   const authorIds = new Set<string>([question.authorId]);
 
   question.answers?.forEach((answer) => {
@@ -138,6 +153,10 @@ async function attachAuthors(question: QuestionItem): Promise<QuestionItem> {
     author: authorsMap.get(question.authorId) ?? null,
     answers: question.answers?.map((answer) => ({
       ...answer,
+      userVote: resolveUserVote(
+        answer.votes?.map((vote) => ({ voterId: vote.voterId, value: vote.value })),
+        viewerId
+      ),
       author: authorsMap.get(answer.authorId) ?? null,
     })),
   };
@@ -253,7 +272,10 @@ export async function listQuestions(
   };
 }
 
-export async function getQuestionById(id: string): Promise<QuestionItem | null> {
+export async function getQuestionById(
+  id: string,
+  viewerId?: string | null
+): Promise<QuestionItem | null> {
   const question = await prisma.question.findUnique({
     where: { id },
     include: {
@@ -269,7 +291,7 @@ export async function getQuestionById(id: string): Promise<QuestionItem | null> 
 
   if (!question) return null;
 
-  return attachAuthors(question);
+  return attachAuthors(question, viewerId);
 }
 
 export async function createAnswer(
@@ -364,7 +386,7 @@ export async function deleteAnswer(
   questionId: string,
   answerId: string,
   requesterId: string
-): Promise<void> {
+): Promise<DeleteAnswerResult> {
   const existing = await prisma.answer.findFirst({
     where: {
       id: answerId,
@@ -385,13 +407,14 @@ export async function deleteAnswer(
     throw new Error("FORBIDDEN_ANSWER_DELETE");
   }
 
-  if (existing.isAccepted) {
-    throw new Error("ANSWER_IS_ACCEPTED");
-  }
-
   await prisma.answer.delete({
     where: { id: answerId },
   });
+
+  return {
+    deletedAnswerId: existing.id,
+    wasAccepted: existing.isAccepted,
+  };
 }
 
 export async function acceptAnswer(
@@ -415,6 +438,20 @@ export async function acceptAnswer(
   if (!answer) throw new Error("ANSWER_NOT_FOUND");
 
   return prisma.$transaction(async (tx) => {
+    const current = await tx.answer.findUnique({
+      where: { id: answerId },
+      select: { isAccepted: true },
+    });
+
+    if (current?.isAccepted) {
+      const answer = await tx.answer.update({
+        where: { id: answerId },
+        data: { isAccepted: false },
+      });
+
+      return { answer, action: "unaccepted" as const };
+    }
+
     await tx.answer.updateMany({
       where: {
         questionId,
@@ -425,10 +462,12 @@ export async function acceptAnswer(
       },
     });
 
-    return tx.answer.update({
+    const answer = await tx.answer.update({
       where: { id: answerId },
       data: { isAccepted: true },
     });
+
+    return { answer, action: "accepted" as const };
   });
 }
 
@@ -437,7 +476,7 @@ export async function voteAnswer(
   answerId: string,
   voterId: string,
   value: VoteValue
-): Promise<{ voteScore: number }> {
+): Promise<{ voteScore: number; userVote: VoteValue | 0 }> {
   const answer = await prisma.answer.findFirst({
     where: {
       id: answerId,
@@ -465,6 +504,8 @@ export async function voteAnswer(
       },
     });
 
+    let userVote: VoteValue | 0 = value;
+
     if (!existingVote) {
       await tx.answerVote.create({
         data: {
@@ -483,6 +524,7 @@ export async function voteAnswer(
           },
         },
       });
+      userVote = 0;
     } else {
       await tx.answerVote.update({
         where: {
@@ -495,6 +537,7 @@ export async function voteAnswer(
           value,
         },
       });
+      userVote = value;
     }
 
     const aggregate = await tx.answerVote.aggregate({
@@ -509,6 +552,6 @@ export async function voteAnswer(
       data: { voteScore },
     });
 
-    return { voteScore };
+    return { voteScore, userVote };
   });
 }

@@ -55,6 +55,7 @@ export async function POST(
       {
         message: "Voto registrado exitosamente.",
         voteScore: result.voteScore,
+        userVote: result.userVote,
       },
       { status: 200 }
     );

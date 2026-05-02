@@ -106,14 +106,18 @@ export async function DELETE(
       return NextResponse.json(response, { status: 400 });
     }
 
-    await deleteAnswer(
+    const result = await deleteAnswer(
       questionIdValidation.data,
       answerIdValidation.data,
       userId
     );
 
     return NextResponse.json(
-      { message: "Respuesta eliminada exitosamente." },
+      {
+        message: "Respuesta eliminada exitosamente.",
+        deletedAnswerId: result.deletedAnswerId,
+        wasAccepted: result.wasAccepted,
+      },
       { status: 200 }
     );
   } catch (error: unknown) {
@@ -129,13 +133,6 @@ export async function DELETE(
         error: "No tienes permiso para eliminar esta respuesta.",
       };
       return NextResponse.json(response, { status: 403 });
-    }
-
-    if (err.message === "ANSWER_IS_ACCEPTED") {
-      const response: ErrorResponse = {
-        error: "No puedes eliminar una respuesta que ya fue aceptada.",
-      };
-      return NextResponse.json(response, { status: 409 });
     }
 
     console.error("[DELETE /api/questions/:id/answers/:answerId]", err.message);

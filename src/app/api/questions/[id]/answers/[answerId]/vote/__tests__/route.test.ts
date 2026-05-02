@@ -107,7 +107,7 @@ describe('POST /api/questions/[id]/answers/[answerId]/vote', () => {
 
   it('retorna 200 cuando el voto se registra exitosamente', async () => {
     vi.mocked(withAuth).mockResolvedValue({ userId: 'user-1', errorResponse: null })
-    vi.mocked(voteAnswer).mockResolvedValue({ voteScore: 3 })
+    vi.mocked(voteAnswer).mockResolvedValue({ voteScore: 3, userVote: 1 })
 
     const req = new NextRequest(
       `http://localhost:3003/api/questions/${QUESTION_ID}/answers/${ANSWER_ID}/vote`,
@@ -123,5 +123,6 @@ describe('POST /api/questions/[id]/answers/[answerId]/vote', () => {
     expect(res.status).toBe(200)
     expect(body.message).toContain('registrado')
     expect(body.voteScore).toBe(3)
+    expect(body.userVote).toBe(1)
   })
 })

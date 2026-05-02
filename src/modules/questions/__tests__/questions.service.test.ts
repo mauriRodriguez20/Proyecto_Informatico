@@ -309,9 +309,10 @@ describe('deleteAnswer', () => {
     } as any)
     vi.mocked(prisma.answer.delete).mockResolvedValue(baseAnswer as any)
 
-    await deleteAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
+    const result = await deleteAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
 
     expect(prisma.answer.delete).toHaveBeenCalledWith({ where: { id: ANSWER_ID } })
+    expect(result).toEqual({ deletedAnswerId: ANSWER_ID, wasAccepted: false })
   })
 
   it('lanza FORBIDDEN_ANSWER_DELETE si el usuario no es el autor', async () => {
@@ -326,16 +327,17 @@ describe('deleteAnswer', () => {
     ).rejects.toThrow('FORBIDDEN_ANSWER_DELETE')
   })
 
-  it('lanza ANSWER_IS_ACCEPTED si la respuesta ya fue aceptada', async () => {
+  it('permite eliminar respuestas aceptadas y reporta wasAccepted=true', async () => {
     vi.mocked(prisma.answer.findFirst).mockResolvedValue({
       ...baseAnswer,
       authorId: AUTHOR_ID,
       isAccepted: true,
     } as any)
+    vi.mocked(prisma.answer.delete).mockResolvedValue(baseAnswer as any)
 
-    await expect(
-      deleteAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
-    ).rejects.toThrow('ANSWER_IS_ACCEPTED')
+    const result = await deleteAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
+
+    expect(result).toEqual({ deletedAnswerId: ANSWER_ID, wasAccepted: true })
   })
 })
 
@@ -351,6 +353,7 @@ describe('acceptAnswer', () => {
 
     const mockTx = {
       answer: {
+        findUnique: vi.fn().mockResolvedValue({ isAccepted: false }),
         updateMany: vi.fn().mockResolvedValue(undefined),
         update: vi.fn().mockResolvedValue({ ...baseAnswer, isAccepted: true }),
       },
@@ -364,7 +367,8 @@ describe('acceptAnswer', () => {
 
     expect(mockTx.answer.updateMany).toHaveBeenCalledOnce()
     expect(mockTx.answer.update).toHaveBeenCalledOnce()
-    expect(result.isAccepted).toBe(true)
+    expect(result.answer.isAccepted).toBe(true)
+    expect(result.action).toBe('accepted')
   })
 
   it('lanza QUESTION_NOT_FOUND si la pregunta no existe', async () => {
@@ -384,6 +388,31 @@ describe('acceptAnswer', () => {
     await expect(
       acceptAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
     ).rejects.toThrow('FORBIDDEN_ACCEPT_ANSWER')
+  })
+
+  it('desmarca la respuesta cuando ya estaba aceptada', async () => {
+    vi.mocked(prisma.question.findUnique).mockResolvedValue({
+      id: QUESTION_ID,
+      authorId: AUTHOR_ID,
+    } as any)
+    vi.mocked(prisma.answer.findFirst).mockResolvedValue({ id: ANSWER_ID } as any)
+
+    const mockTx = {
+      answer: {
+        findUnique: vi.fn().mockResolvedValue({ isAccepted: true }),
+        updateMany: vi.fn().mockResolvedValue(undefined),
+        update: vi.fn().mockResolvedValue({ ...baseAnswer, isAccepted: false }),
+      },
+    }
+    vi.mocked(prisma.$transaction).mockImplementation(async (arg: any) => {
+      if (typeof arg === 'function') return arg(mockTx)
+      return arg
+    })
+
+    const result = await acceptAnswer(QUESTION_ID, ANSWER_ID, AUTHOR_ID)
+    expect(result.action).toBe('unaccepted')
+    expect(result.answer.isAccepted).toBe(false)
+    expect(mockTx.answer.updateMany).not.toHaveBeenCalled()
   })
 })
 
@@ -415,6 +444,7 @@ describe('voteAnswer', () => {
 
     expect(mockTx.answerVote.create).toHaveBeenCalledOnce()
     expect(result.voteScore).toBe(1)
+    expect(result.userVote).toBe(1)
   })
 
   it('lanza ANSWER_NOT_FOUND si la respuesta no existe', async () => {
@@ -448,6 +478,7 @@ describe('voteAnswer', () => {
 
     expect(mockTx.answerVote.delete).toHaveBeenCalledOnce()
     expect(result.voteScore).toBe(0)
+    expect(result.userVote).toBe(0)
   })
 
   it('actualiza el voto cuando el usuario cambia su valor (de 1 a -1)', async () => {
@@ -473,6 +504,7 @@ describe('voteAnswer', () => {
 
     expect(mockTx.answerVote.update).toHaveBeenCalledOnce()
     expect(result.voteScore).toBe(-1)
+    expect(result.userVote).toBe(-1)
   })
 
   it('lanza SELF_VOTE_NOT_ALLOWED si el usuario vota su propia respuesta', async () => {

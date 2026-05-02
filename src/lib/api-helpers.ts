@@ -1,39 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-
-// ─────────────────────────────────────────────────────────────
-// Tipos
-// ─────────────────────────────────────────────────────────────
 
 export type AuthResult =
   | { userId: string; errorResponse: null }
   | { userId: null; errorResponse: NextResponse };
 
-// ─────────────────────────────────────────────────────────────
-// withAuth
-// Extrae el userId autenticado de un request protegido.
-// Uso en route handlers:
-//
-//   const { userId, errorResponse } = await withAuth(req);
-//   if (errorResponse) return errorResponse;
-// ─────────────────────────────────────────────────────────────
+export type OptionalAuthResult = { userId: string | null };
 
-export async function withAuth(req: NextRequest): Promise<AuthResult> {
+function getBearerToken(req: NextRequest): string | null {
   const authHeader = req.headers.get("authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice(7)
-    : null;
+  return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+}
 
-  if (!token) {
-    return {
-      userId: null,
-      errorResponse: NextResponse.json(
-        { error: "Token de autenticación requerido." },
-        { status: 401 }
-      ),
-    };
-  }
-
+async function resolveUserId(req: NextRequest, token: string): Promise<string | null> {
   const res = NextResponse.next();
 
   const supabase = createServerClient(
@@ -44,9 +23,7 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
         getAll() {
           return req.cookies.getAll();
         },
-        setAll(
-          cookiesToSet: { name: string; value: string; options: CookieOptions }[]
-        ) {
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             res.cookies.set(name, value, options);
           });
@@ -60,15 +37,45 @@ export async function withAuth(req: NextRequest): Promise<AuthResult> {
     data: { user },
   } = await supabase.auth.getUser(token);
 
-  if (!user) {
+  return user?.id ?? null;
+}
+
+export async function withAuth(req: NextRequest): Promise<AuthResult> {
+  const token = getBearerToken(req);
+
+  if (!token) {
     return {
       userId: null,
       errorResponse: NextResponse.json(
-        { error: "No autorizado. Sesión inválida o expirada." },
+        { error: "Token de autenticacion requerido." },
         { status: 401 }
       ),
     };
   }
 
-  return { userId: user.id, errorResponse: null };
+  const userId = await resolveUserId(req, token);
+
+  if (!userId) {
+    return {
+      userId: null,
+      errorResponse: NextResponse.json(
+        { error: "No autorizado. Sesion invalida o expirada." },
+        { status: 401 }
+      ),
+    };
+  }
+
+  return { userId, errorResponse: null };
+}
+
+export async function withOptionalAuth(req: NextRequest): Promise<OptionalAuthResult> {
+  const token = getBearerToken(req);
+  if (!token) return { userId: null };
+
+  try {
+    const userId = await resolveUserId(req, token);
+    return { userId };
+  } catch {
+    return { userId: null };
+  }
 }

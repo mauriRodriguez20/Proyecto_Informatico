@@ -104,7 +104,10 @@ describe('PATCH /api/questions/[id]/answers/[answerId]/accept', () => {
 
   it('retorna 200 cuando la respuesta se acepta exitosamente', async () => {
     vi.mocked(withAuth).mockResolvedValue({ userId: 'user-1', errorResponse: null })
-    vi.mocked(acceptAnswer).mockResolvedValue(mockAnswer as any)
+    vi.mocked(acceptAnswer).mockResolvedValue({
+      answer: mockAnswer,
+      action: 'accepted',
+    } as any)
 
     const req = new NextRequest(
       `http://localhost:3003/api/questions/${QUESTION_ID}/answers/${ANSWER_ID}/accept`,
@@ -116,5 +119,26 @@ describe('PATCH /api/questions/[id]/answers/[answerId]/accept', () => {
     expect(res.status).toBe(200)
     expect(body.message).toContain('aceptada')
     expect(body.answer.isAccepted).toBe(true)
+    expect(body.accepted).toBe(true)
+  })
+
+  it('retorna 200 cuando la respuesta se desmarca como aceptada', async () => {
+    vi.mocked(withAuth).mockResolvedValue({ userId: 'user-1', errorResponse: null })
+    vi.mocked(acceptAnswer).mockResolvedValue({
+      answer: { ...mockAnswer, isAccepted: false },
+      action: 'unaccepted',
+    } as any)
+
+    const req = new NextRequest(
+      `http://localhost:3003/api/questions/${QUESTION_ID}/answers/${ANSWER_ID}/accept`,
+      { method: 'PATCH', headers: { Authorization: 'Bearer token' } }
+    )
+    const res = await PATCH(req, validParams)
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.message).toContain('desmarcada')
+    expect(body.answer.isAccepted).toBe(false)
+    expect(body.accepted).toBe(false)
   })
 })
