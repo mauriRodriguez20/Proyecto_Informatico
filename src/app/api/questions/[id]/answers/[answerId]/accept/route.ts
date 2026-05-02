@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/api-helpers";
+import { fetchWithKeepAlive } from "@/lib/http-client";
 import { uuidParamSchema } from "@/modules/questions/questions.schema";
 import { acceptAnswer } from "@/modules/questions/questions.service";
 import type { ErrorResponse } from "@/modules/questions/questions.types";
@@ -31,7 +32,7 @@ async function notifyAcceptedAnswer(
   }
 
   try {
-    const response = await fetch(
+    const response = await fetchWithKeepAlive(
       `${ms04Url}/api/questions/${questionId}/answers/${answerId}/accepted-notification`,
       {
         method: "POST",

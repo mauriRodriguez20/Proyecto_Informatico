@@ -78,6 +78,7 @@ model Answer {
   @@index([questionId])
   @@index([authorId])
   @@index([questionId, isAccepted])
+  @@index([questionId, isAccepted, voteScore, createdAt])
   @@index([voteScore])
   @@map("answers")
   @@schema("questions")
