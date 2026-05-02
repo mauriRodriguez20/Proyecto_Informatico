@@ -18,6 +18,10 @@ function isPublicRoute(req: NextRequest): boolean {
     return true;
   }
 
+  if (req.method === "GET" && pathname === "/api/users/batch") {
+    return true;
+  }
+
   if (req.method === "GET" && pathname.startsWith("/api/technologies")) {
     return true;
   }

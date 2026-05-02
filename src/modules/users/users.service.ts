@@ -12,6 +12,7 @@ import type {
 } from "./users.schema";
 import type {
   LoginResult,
+  PublicAuthorDto,
   RateUserResult,
   RegisterResult,
   TechnologyDto,
@@ -50,6 +51,15 @@ const USER_WITH_TECHNOLOGIES_SELECT = {
   },
 } as const;
 
+const AUTHOR_SELECT = {
+  id: true,
+  username: true,
+  role: true,
+  avatarUrl: true,
+  avgRating: true,
+  totalRatings: true,
+} as const;
+
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -58,6 +68,19 @@ function mapUser(user: Prisma.UserGetPayload<{ select: typeof USER_SELECT }>): U
   return {
     ...user,
     role: user.role,
+  };
+}
+
+function mapPublicAuthor(
+  user: Prisma.UserGetPayload<{ select: typeof AUTHOR_SELECT }>
+): PublicAuthorDto {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    avatarUrl: user.avatarUrl,
+    avgRating: user.avgRating,
+    totalRatings: user.totalRatings,
   };
 }
 
@@ -459,6 +482,20 @@ export async function getUserById(id: string): Promise<UserWithTechnologiesDto |
   if (!user) return null;
   const stats = await getUserStats(id);
   return mapUserWithTechnologies(user, stats);
+}
+
+export async function getUsersByIdsForAuthorSnapshot(
+  ids: string[]
+): Promise<PublicAuthorDto[]> {
+  const uniqueIds = Array.from(new Set(ids)).filter(Boolean);
+  if (uniqueIds.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: uniqueIds } },
+    select: AUTHOR_SELECT,
+  });
+
+  return users.map(mapPublicAuthor);
 }
 
 export async function updateUserProfile(

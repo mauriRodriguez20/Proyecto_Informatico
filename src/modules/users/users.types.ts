@@ -30,6 +30,15 @@ export interface UserWithTechnologiesDto extends UserDto, UserStatsDto {
   technologies: TechnologyDto[];
 }
 
+export interface PublicAuthorDto {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  role: "FRONTEND" | "BACKEND";
+  avgRating: number;
+  totalRatings: number;
+}
+
 export interface LoginResult {
   user: UserDto;
   accessToken: string;
