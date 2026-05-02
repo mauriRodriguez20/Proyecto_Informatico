@@ -61,6 +61,12 @@ model Publication {
 
   tags         PublicationTag[]
 
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([type])
+  @@index([area])
+  @@index([avgRating])
+  @@index([totalRatings])
   @@map("publications")
   @@schema("publications")
 }
@@ -72,6 +78,7 @@ model PublicationTag {
   publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
 
   @@id([publicationId, technologyId])
+  @@index([technologyId])
   @@map("publication_tags")
   @@schema("publications")
 }

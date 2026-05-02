@@ -1,4 +1,5 @@
-﻿import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
+import { fetchWithKeepAlive } from "@/lib/http-client";
 import type {
   CreatePublicationInput,
   UpdatePublicationInput,
@@ -87,7 +88,7 @@ async function ensureTechnologyByName(
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(`${ms01Url}/api/technologies`, {
+  const response = await fetchWithKeepAlive(`${ms01Url}/api/technologies`, {
     method: "POST",
     headers,
     body: JSON.stringify({ name }),
@@ -130,31 +131,86 @@ async function resolveTechnologyIds(
   return Array.from(ids);
 }
 
-async function fetchAuthor(authorId: string): Promise<AuthorSnapshot | null> {
+interface BatchAuthorResponse {
+  users?: Array<{
+    id: string;
+    username: string;
+    avatarUrl: string | null;
+    role: string;
+  }>;
+}
+
+const AUTHOR_CACHE_TTL_MS = 60_000;
+const AUTHOR_MISS_CACHE_TTL_MS = 10_000;
+const authorSnapshotCache = new Map<
+  string,
+  { value: AuthorSnapshot | null; expiresAt: number }
+>();
+
+async function fetchAuthorsBatch(
+  authorIds: string[]
+): Promise<Map<string, AuthorSnapshot | null>> {
+  const uniqueIds = Array.from(new Set(authorIds)).filter(Boolean);
+  const result = new Map<string, AuthorSnapshot | null>();
+  const missingIds: string[] = [];
+  const now = Date.now();
+
+  uniqueIds.forEach((id) => {
+    const cached = authorSnapshotCache.get(id);
+    if (cached && cached.expiresAt > now) {
+      result.set(id, cached.value);
+      return;
+    }
+    result.set(id, null);
+    missingIds.push(id);
+  });
+
+  if (uniqueIds.length === 0) return result;
+  if (missingIds.length === 0) return result;
+
   try {
-    const res = await fetch(`${process.env.MS01_URL}/api/users/${authorId}`, {
+    const ms01Url = process.env.MS01_URL;
+    if (!ms01Url) return result;
+
+    const query = encodeURIComponent(missingIds.join(","));
+    const response = await fetchWithKeepAlive(`${ms01Url}/api/users/batch?ids=${query}`, {
       cache: "no-store",
     });
-    if (!res.ok) {
-      console.warn(`[fetchAuthor] Failed to fetch author ${authorId} from MS-01. Status: ${res.status}`);
-      return null;
-    }
-    const data = await res.json();
 
-    const username =
-      data.user?.username ?? data.user?.name ?? `User ${authorId.slice(0, 5)}`;
+    if (!response.ok) return result;
 
-    return {
-      id: data.user?.id ?? authorId,
-      username,
-      name: username,
-      avatarUrl: data.user?.avatarUrl ?? null,
-      role: data.user?.role ?? "UNKNOWN",
-      avgRating: typeof data.user?.avgRating === "number" ? data.user.avgRating : undefined,
-    };
-  } catch (error) {
-    console.error(`[fetchAuthor] Error connecting to MS-01 for author ${authorId}:`, error);
-    return null;
+    const payload = (await response.json()) as BatchAuthorResponse;
+    const users = Array.isArray(payload.users) ? payload.users : [];
+
+    const returnedIds = new Set<string>();
+    users.forEach((user) => {
+      const username = user.username ?? `User ${user.id.slice(0, 5)}`;
+      const value: AuthorSnapshot = {
+        id: user.id,
+        username,
+        name: username,
+        avatarUrl: user.avatarUrl ?? null,
+        role: user.role ?? "UNKNOWN",
+      };
+      result.set(user.id, value);
+      returnedIds.add(user.id);
+      authorSnapshotCache.set(user.id, {
+        value,
+        expiresAt: now + AUTHOR_CACHE_TTL_MS,
+      });
+    });
+
+    missingIds.forEach((id) => {
+      if (returnedIds.has(id)) return;
+      authorSnapshotCache.set(id, {
+        value: null,
+        expiresAt: now + AUTHOR_MISS_CACHE_TTL_MS,
+      });
+    });
+
+    return result;
+  } catch {
+    return result;
   }
 }
 
@@ -207,7 +263,8 @@ export async function getPublicationById(
 
   if (!publication) return null;
 
-  const author = await fetchAuthor(publication.authorId);
+  const authorsById = await fetchAuthorsBatch([publication.authorId]);
+  const author = authorsById.get(publication.authorId) ?? null;
   return mapToResponse({ ...publication, author }) as PublicationWithAuthorResponse;
 }
 
@@ -325,10 +382,7 @@ export async function listPublications(query: ListPublicationsQuery): Promise<{
     totalRatings > 0 ? Math.round((weightedSum / totalRatings) * 10) / 10 : 0;
 
   const authorIds = Array.from(new Set(data.map((publication) => publication.authorId)));
-  const authorEntries = await Promise.all(
-    authorIds.map(async (authorId) => [authorId, await fetchAuthor(authorId)] as const)
-  );
-  const authorsById = new Map(authorEntries);
+  const authorsById = await fetchAuthorsBatch(authorIds);
 
   const dataWithAuthors = data.map((publication) =>
     mapToResponse({
@@ -349,3 +403,6 @@ export async function listPublications(query: ListPublicationsQuery): Promise<{
     },
   };
 }
+
+
+
