@@ -32,7 +32,10 @@ function normalizePublication(raw: any): Publication {
             id: raw.author.id ?? raw.authorId,
             username: raw.author.username ?? raw.author.name ?? `User ${(raw.authorId || '').slice(0, 5)}`,
             avatarUrl: raw.author.avatarUrl ?? undefined,
-            rating: authorRating,
+            avgRating: authorRating,
+            totalRatings:
+                toNumberOrUndefined(raw?.author?.totalRatings) ??
+                toNumberOrUndefined(raw?.totalRatings),
             role: raw.author.role ?? 'Developer',
         }
         : undefined;

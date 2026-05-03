@@ -6,6 +6,7 @@ export interface Author {
     username: string;
     avatarUrl?: string;
     avgRating?: number;
+    totalRatings?: number;
     role?: string;
 }
 
