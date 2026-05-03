@@ -10,7 +10,10 @@ import {
 } from "@/modules/questions/questions.service";
 import type { ErrorResponse } from "@/modules/questions/questions.types";
 
-function getFirstFieldError(details: Record<string, string[] | undefined>): string | undefined {
+function getFirstFieldError(
+  details?: Record<string, string[] | undefined>
+): string | undefined {
+  if (!details) return undefined;
   const first = Object.values(details).find((messages) => messages && messages.length > 0);
   return first?.[0];
 }
@@ -62,7 +65,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(response, { status: 400 });
     }
 
-    const question = await createQuestion(userId, validation.data);
+    const question = await createQuestion(userId, validation.data as any);
 
     return NextResponse.json(
       {

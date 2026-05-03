@@ -86,17 +86,23 @@ export async function PATCH(
       return NextResponse.json(response, { status: 400 });
     }
 
-    const answer = await acceptAnswer(
+    const result = await acceptAnswer(
       questionIdValidation.data,
       answerIdValidation.data,
       userId
     );
 
-    const notification = await notifyAcceptedAnswer(
-      req,
-      questionIdValidation.data,
-      answerIdValidation.data
-    );
+    const notification =
+      result.action === "accepted"
+        ? await notifyAcceptedAnswer(
+            req,
+            questionIdValidation.data,
+            answerIdValidation.data
+          )
+        : {
+            status: "skipped" as const,
+            details: "La respuesta fue desmarcada como aceptada.",
+          };
 
     if (notification.status === "failed") {
       console.warn(
@@ -107,8 +113,12 @@ export async function PATCH(
 
     return NextResponse.json(
       {
-        message: "Respuesta marcada como aceptada.",
-        answer,
+        message:
+          result.action === "accepted"
+            ? "Respuesta marcada como aceptada."
+            : "Respuesta desmarcada como aceptada.",
+        answer: result.answer,
+        accepted: result.action === "accepted",
         notification,
       },
       { status: 200 }

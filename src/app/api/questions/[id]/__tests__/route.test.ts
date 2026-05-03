@@ -1,10 +1,12 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 vi.mock('@/modules/questions/questions.service')
+vi.mock('@/lib/api-helpers', () => ({ withOptionalAuth: vi.fn() }))
 
 import { NextRequest } from 'next/server'
 import { GET } from '../route'
 import { getQuestionById } from '@/modules/questions/questions.service'
+import { withOptionalAuth } from '@/lib/api-helpers'
 
 const QUESTION_ID = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 
@@ -31,6 +33,7 @@ beforeEach(() => vi.clearAllMocks())
 
 describe('GET /api/questions/[id]', () => {
   it('retorna 200 con la pregunta cuando existe', async () => {
+    vi.mocked(withOptionalAuth).mockResolvedValue({ userId: null })
     vi.mocked(getQuestionById).mockResolvedValue(mockQuestion as any)
 
     const req = new NextRequest(`http://localhost:3003/api/questions/${QUESTION_ID}`)
@@ -50,6 +53,7 @@ describe('GET /api/questions/[id]', () => {
   })
 
   it('retorna 404 si la pregunta no existe', async () => {
+    vi.mocked(withOptionalAuth).mockResolvedValue({ userId: null })
     vi.mocked(getQuestionById).mockResolvedValue(null)
 
     const req = new NextRequest(`http://localhost:3003/api/questions/${QUESTION_ID}`)
@@ -59,6 +63,7 @@ describe('GET /api/questions/[id]', () => {
   })
 
   it('retorna 500 si el servicio lanza error inesperado', async () => {
+    vi.mocked(withOptionalAuth).mockResolvedValue({ userId: null })
     vi.mocked(getQuestionById).mockRejectedValue(new Error('DB error'))
 
     const req = new NextRequest(`http://localhost:3003/api/questions/${QUESTION_ID}`)

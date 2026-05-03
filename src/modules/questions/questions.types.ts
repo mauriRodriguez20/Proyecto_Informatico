@@ -1,4 +1,4 @@
-import { Area } from "@prisma/client";
+export type Area = "FRONTEND" | "BACKEND";
 
 export type VoteValue = 1 | -1;
 
@@ -36,6 +36,7 @@ export interface AnswerItem {
   updatedAt: Date;
   votes?: AnswerVoteItem[];
   author?: AuthorSnapshot | null;
+  userVote?: VoteValue | 0;
 }
 
 export interface QuestionItem {
@@ -86,6 +87,11 @@ export interface UpdateAnswerInput {
   content?: string;
   codeBlock?: string | null;
   language?: string | null;
+}
+
+export interface DeleteAnswerResult {
+  deletedAnswerId: string;
+  wasAccepted: boolean;
 }
 
 export interface PaginatedQuestionsResponse {

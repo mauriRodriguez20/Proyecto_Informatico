@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { withOptionalAuth } from "@/lib/api-helpers";
 import { uuidParamSchema } from "@/modules/questions/questions.schema";
 import { getQuestionById } from "@/modules/questions/questions.service";
 import type { ErrorResponse } from "@/modules/questions/questions.types";
@@ -18,7 +19,9 @@ export async function GET(
       return NextResponse.json(response, { status: 400 });
     }
 
-    const question = await getQuestionById(idValidation.data);
+    const { userId } = await withOptionalAuth(_req);
+
+    const question = await getQuestionById(idValidation.data, userId);
 
     if (!question) {
       const response: ErrorResponse = { error: "Pregunta no encontrada." };

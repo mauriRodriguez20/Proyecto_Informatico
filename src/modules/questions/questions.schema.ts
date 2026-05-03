@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { Area } from "@prisma/client";
+
+const areaSchema = z.enum(["FRONTEND", "BACKEND"]);
 
 const languageSchema = z
   .string()
@@ -18,7 +19,7 @@ const technologyIdsSchema = z
 
 export const createQuestionSchema = z
   .object({
-    area: z.nativeEnum(Area),
+    area: areaSchema,
     title: z
       .string()
       .trim()
