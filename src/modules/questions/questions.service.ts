@@ -47,6 +47,8 @@ interface BatchAuthorResponse {
     username: string;
     avatarUrl: string | null;
     role: string;
+    avgRating?: number;
+    totalRatings?: number;
   }>;
 }
 
@@ -97,6 +99,10 @@ async function fetchAuthorsBatch(
         username: user.username ?? "usuario",
         avatarUrl: user.avatarUrl ?? null,
         role: user.role ?? "UNKNOWN",
+        avgRating:
+          typeof user.avgRating === "number" ? user.avgRating : undefined,
+        totalRatings:
+          typeof user.totalRatings === "number" ? user.totalRatings : undefined,
       };
       result.set(user.id, value);
       returnedIds.add(user.id);

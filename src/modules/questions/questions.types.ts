@@ -8,6 +8,7 @@ export interface AuthorSnapshot {
   avatarUrl: string | null;
   role: string;
   avgRating?: number;
+  totalRatings?: number;
 }
 
 export interface QuestionTagItem {
@@ -106,4 +107,3 @@ export interface ErrorResponse {
   error: string;
   details?: string;
 }
-
