@@ -11,6 +11,8 @@ export interface AuthorSnapshot {
   username: string;
   avatarUrl: string | null;
   role: string;
+  avgRating?: number;
+  totalRatings?: number;
 }
 
 export interface CommentItem {
