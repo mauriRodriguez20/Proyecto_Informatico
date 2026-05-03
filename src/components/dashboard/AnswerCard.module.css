@@ -50,6 +50,25 @@
     transform: translateY(-1px);
 }
 
+.voteBtnActiveUp {
+    border-color: #22c55e;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.12);
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25);
+}
+
+.voteBtnActiveDown {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+
+.voteBtnDisabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
 .voteCount {
     font-weight: 800;
     font-size: 1.1rem;

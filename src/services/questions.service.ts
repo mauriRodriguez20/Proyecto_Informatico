@@ -31,6 +31,7 @@ export interface Answer {
     language?: string | null;
     isAccepted: boolean;
     voteScore: number;
+    userVote?: 1 | -1 | 0;
     createdAt: string;
     updatedAt: string;
     author?: {
@@ -53,15 +54,23 @@ export interface QuestionsResponse {
 export interface VoteAnswerResponse {
     message?: string;
     voteScore: number;
+    userVote?: 1 | -1 | 0;
 }
 
 export interface AcceptAnswerResponse {
     message?: string;
     answer: Answer;
+    accepted?: boolean;
     notification?: {
         status: 'sent' | 'skipped' | 'failed';
         details?: string;
     };
+}
+
+export interface DeleteAnswerResponse {
+    message?: string;
+    deletedAnswerId: string;
+    wasAccepted: boolean;
 }
 
 export const questionsService = {
@@ -135,6 +144,12 @@ export const questionsService = {
         return apiRequest<any>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}`, {
             method: "PATCH",
             body: JSON.stringify(data),
+        });
+    },
+
+    async deleteAnswer(questionId: string, answerId: string): Promise<DeleteAnswerResponse> {
+        return apiRequest<DeleteAnswerResponse>(BASE_URL_MS03, `/api/questions/${questionId}/answers/${answerId}`, {
+            method: "DELETE",
         });
     },
 
